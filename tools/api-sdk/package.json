@@ -1,0 +1,10 @@
+{
+  "name": "farm-dashboard-api-sdk",
+  "private": true,
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.14.0"
+  },
+  "scripts": {
+    "generate": "python generate.py"
+  }
+}

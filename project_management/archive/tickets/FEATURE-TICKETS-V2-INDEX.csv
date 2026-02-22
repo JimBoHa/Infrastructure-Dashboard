@@ -1,0 +1,9 @@
+ticket_id,title,filename,status,components,depends_on
+FEATURE-001,FEATURE-001: Pi 5 Local Display (Basic Status + Live Values),FEATURE-001-pi5-local-display-basic.md,Proposed,node-agent; dashboard-web; core-server; docs,-
+FEATURE-002,FEATURE-002: Pi 5 Local Display (Advanced Controls + Trends),FEATURE-002-pi5-local-display-advanced-controls.md,Proposed,node-agent; dashboard-web; core-server,FEATURE-001
+FEATURE-003,FEATURE-003: Deployment Option — Preconfigured Storage Media (Pi 5),FEATURE-003-deployment-preconfigured-media.md,Enhancement (productization),tools; docs; setup-app (optional),-
+FEATURE-004,FEATURE-004: Deployment Option — Deploy From Server via SSH (Hardening + UX),FEATURE-004-deployment-from-server-ssh.md,Enhancement (hardening),dashboard-web; core-server; docs,CS-42 + DW-44 (baseline)
+FEATURE-005,FEATURE-005: Deployment Option — Network Boot Provisioning (Pi 5),FEATURE-005-deployment-network-boot.md,Proposed,docs; infra (optional); core-server/tools (optional),FEATURE-003 (recommended)
+FEATURE-006,FEATURE-006: Renogy BT-2 — One-Click Setup (Dashboard UX),FEATURE-006-renogy-bt-one-click-setup.md,Enhancement (UX),dashboard-web; core-server; node-agent; docs,NA-28 + NA-29 (collector/bundle)
+FEATURE-007,FEATURE-007: Weather Station (WS-2902) — One-Click Setup + 30s Trending,FEATURE-007-ws-2902-weather-station-setup.md,Proposed,dashboard-web; core-server; docs,-
+FEATURE-008,FEATURE-008: WAN Read-Only Web Portal via AWS Pull Agent,FEATURE-008-wan-readonly-webpage-aws.md,Proposed,infra; core-server; dashboard-web (read-only build); docs,CS-21 (auth/capabilities) + stable API

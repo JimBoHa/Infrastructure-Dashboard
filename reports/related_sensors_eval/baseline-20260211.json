@@ -1,0 +1,614 @@
+{
+  "schema_version": 1,
+  "args": {
+    "api_base_url": "http://127.0.0.1:8000",
+    "auth_token_source": "file",
+    "candidate_limit": 200,
+    "case_limit": null,
+    "cases": "reports/related_sensors_eval/cases.json",
+    "exec_mode": "api",
+    "interval_seconds": 60,
+    "max_results": 20,
+    "poll_ms": 250,
+    "report_json": "reports/related_sensors_eval/baseline-20260211.json",
+    "report_md": "reports/related_sensors_eval/baseline-20260211.md",
+    "timeout_seconds": 120
+  },
+  "summary": {
+    "by_tag": {
+      "cpu_percent": {
+        "cases": 1,
+        "mrr_mean": 0.0,
+        "precision_at_10_mean": 0.0,
+        "precision_at_20_mean": 0.0,
+        "precision_at_5_mean": 0.0,
+        "strong_coverage_rate": 0.0
+      },
+      "current": {
+        "cases": 4,
+        "mrr_mean": 0.14583333333333331,
+        "precision_at_10_mean": 0.05,
+        "precision_at_20_mean": 0.025,
+        "precision_at_5_mean": 0.1,
+        "strong_coverage_rate": 0.5
+      },
+      "derived": {
+        "cases": 5,
+        "mrr_mean": 0.26666666666666666,
+        "precision_at_10_mean": 0.06000000000000001,
+        "precision_at_20_mean": 0.030000000000000006,
+        "precision_at_5_mean": 0.12000000000000002,
+        "strong_coverage_rate": 1.0
+      },
+      "ground_truth:config_dependency": {
+        "cases": 5,
+        "mrr_mean": 0.26666666666666666,
+        "precision_at_10_mean": 0.06000000000000001,
+        "precision_at_20_mean": 0.030000000000000006,
+        "precision_at_5_mean": 0.12000000000000002,
+        "strong_coverage_rate": 1.0
+      },
+      "incident_like": {
+        "cases": 1,
+        "mrr_mean": 1.0,
+        "precision_at_10_mean": 0.1,
+        "precision_at_20_mean": 0.05,
+        "precision_at_5_mean": 0.2,
+        "strong_coverage_rate": 1.0
+      },
+      "latency": {
+        "cases": 1,
+        "mrr_mean": 1.0,
+        "precision_at_10_mean": 0.1,
+        "precision_at_20_mean": 0.05,
+        "precision_at_5_mean": 0.2,
+        "strong_coverage_rate": 1.0
+      },
+      "node_health": {
+        "cases": 2,
+        "mrr_mean": 0.5,
+        "precision_at_10_mean": 0.05,
+        "precision_at_20_mean": 0.025,
+        "precision_at_5_mean": 0.1,
+        "strong_coverage_rate": 0.5
+      },
+      "percentage": {
+        "cases": 1,
+        "mrr_mean": 0.0,
+        "precision_at_10_mean": 0.0,
+        "precision_at_20_mean": 0.0,
+        "precision_at_5_mean": 0.0,
+        "strong_coverage_rate": 0.0
+      },
+      "physical_relation:battery": {
+        "cases": 1,
+        "mrr_mean": 0.0,
+        "precision_at_10_mean": 0.0,
+        "precision_at_20_mean": 0.0,
+        "precision_at_5_mean": 0.0,
+        "strong_coverage_rate": 0.0
+      },
+      "physical_relation:load": {
+        "cases": 1,
+        "mrr_mean": 0.0,
+        "precision_at_10_mean": 0.0,
+        "precision_at_20_mean": 0.0,
+        "precision_at_5_mean": 0.0,
+        "strong_coverage_rate": 0.0
+      },
+      "physical_relation:pv": {
+        "cases": 1,
+        "mrr_mean": 0.25,
+        "precision_at_10_mean": 0.1,
+        "precision_at_20_mean": 0.05,
+        "precision_at_5_mean": 0.2,
+        "strong_coverage_rate": 1.0
+      },
+      "ping": {
+        "cases": 1,
+        "mrr_mean": 1.0,
+        "precision_at_10_mean": 0.1,
+        "precision_at_20_mean": 0.05,
+        "precision_at_5_mean": 0.2,
+        "strong_coverage_rate": 1.0
+      },
+      "power": {
+        "cases": 4,
+        "mrr_mean": 0.1875,
+        "precision_at_10_mean": 0.05,
+        "precision_at_20_mean": 0.025,
+        "precision_at_5_mean": 0.1,
+        "strong_coverage_rate": 0.75
+      },
+      "pressure": {
+        "cases": 1,
+        "mrr_mean": 1.0,
+        "precision_at_10_mean": 0.1,
+        "precision_at_20_mean": 0.05,
+        "precision_at_5_mean": 0.2,
+        "strong_coverage_rate": 1.0
+      },
+      "renogy_bt2": {
+        "cases": 4,
+        "mrr_mean": 0.1875,
+        "precision_at_10_mean": 0.05,
+        "precision_at_20_mean": 0.025,
+        "precision_at_5_mean": 0.1,
+        "strong_coverage_rate": 0.5
+      },
+      "same_node": {
+        "cases": 1,
+        "mrr_mean": 0.0,
+        "precision_at_10_mean": 0.0,
+        "precision_at_20_mean": 0.0,
+        "precision_at_5_mean": 0.0,
+        "strong_coverage_rate": 0.0
+      },
+      "temp_compensation": {
+        "cases": 3,
+        "mrr_mean": 0.27777777777777773,
+        "precision_at_10_mean": 0.06666666666666667,
+        "precision_at_20_mean": 0.03333333333333333,
+        "precision_at_5_mean": 0.13333333333333333,
+        "strong_coverage_rate": 1.0
+      },
+      "temperature": {
+        "cases": 3,
+        "mrr_mean": 0.27777777777777773,
+        "precision_at_10_mean": 0.06666666666666667,
+        "precision_at_20_mean": 0.03333333333333333,
+        "precision_at_5_mean": 0.13333333333333333,
+        "strong_coverage_rate": 1.0
+      },
+      "voltage": {
+        "cases": 3,
+        "mrr_mean": 0.08333333333333333,
+        "precision_at_10_mean": 0.03333333333333333,
+        "precision_at_20_mean": 0.016666666666666666,
+        "precision_at_5_mean": 0.06666666666666667,
+        "strong_coverage_rate": 0.3333333333333333
+      },
+      "water_level": {
+        "cases": 2,
+        "mrr_mean": 0.25,
+        "precision_at_10_mean": 0.05,
+        "precision_at_20_mean": 0.025,
+        "precision_at_5_mean": 0.1,
+        "strong_coverage_rate": 1.0
+      }
+    },
+    "cases_failed": 0,
+    "cases_succeeded": 10,
+    "cases_total": 10,
+    "mrr_mean": 0.2583333333333333,
+    "precision_at_10_mean": 0.05,
+    "precision_at_20_mean": 0.025,
+    "precision_at_5_mean": 0.1,
+    "strong_coverage_rate": 0.7
+  },
+  "cases": [
+    {
+      "duration_ms": 796,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "5e7be23ca4894114a8c7ca33",
+        "37c26eb6bb138091994f28dd"
+      ],
+      "focus_sensor_id": "af370b03a396ea19681af459",
+      "hits_top10": 1,
+      "id": "derived_power_inputs_v1",
+      "mrr": 0.5,
+      "precision_at_10": 0.1,
+      "precision_at_20": 0.05,
+      "precision_at_5": 0.2,
+      "result_count": 20,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 7,
+      "strong_coverage": true,
+      "tags": [
+        "derived",
+        "power",
+        "renogy_bt2",
+        "ground_truth:config_dependency"
+      ],
+      "top_sensor_ids": [
+        "849f6067fbbd8a0267d2fee3",
+        "37c26eb6bb138091994f28dd",
+        "9ab25497bae062b8c35c4001",
+        "2a61f61c636e4b76be08da3c",
+        "4aa388304bef02c5ff8dc468",
+        "ab78d386116c3c569fa278eb",
+        "f422086f07621b4d075f010c",
+        "c54f963e24a1c1a7becadc04",
+        "1e9bfdabb25c97a8a6ac91d5",
+        "69b43a1932e9837ea38ebb32",
+        "45e020b4fcbeca9e5828eb1b",
+        "c692079025c885c2cf10f3a2",
+        "ce902610fb620cd60c0aac2c",
+        "41eb43907cf9b2cf29922695",
+        "9f9e1b173ca3a85d09c0c675",
+        "91af9586787db88cbe609222",
+        "5d8545f4fa18f9f69c818d1e",
+        "b146e6c8a2c64dd5921f51fd",
+        "2bde9a99ee045b6a819617e9",
+        "0d10c55082e32c662cc4f44f"
+      ]
+    },
+    {
+      "duration_ms": 787,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "ea5745e00cb0227e046f6b88",
+        "6b1edcc4b4d2ac30cac88ad4"
+      ],
+      "focus_sensor_id": "adab2ed19bb1b9dfe189fa81",
+      "hits_top10": 1,
+      "id": "derived_reservoir_depth_temp_comp_v1",
+      "mrr": 0.5,
+      "precision_at_10": 0.1,
+      "precision_at_20": 0.05,
+      "precision_at_5": 0.2,
+      "result_count": 20,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 4,
+      "strong_coverage": true,
+      "tags": [
+        "derived",
+        "water_level",
+        "temperature",
+        "temp_compensation",
+        "ground_truth:config_dependency"
+      ],
+      "top_sensor_ids": [
+        "11f4bdb5739774c9c7ba668b",
+        "ea5745e00cb0227e046f6b88",
+        "849f6067fbbd8a0267d2fee3",
+        "f422086f07621b4d075f010c",
+        "30a76e47b73828d75069323b",
+        "41eb43907cf9b2cf29922695",
+        "69edc2de963aa8c327159042",
+        "2bde9a99ee045b6a819617e9",
+        "91af9586787db88cbe609222",
+        "5d8545f4fa18f9f69c818d1e",
+        "b146e6c8a2c64dd5921f51fd",
+        "39a39c6a021fc7ca8a8e1705",
+        "9f9e1b173ca3a85d09c0c675",
+        "8b1d3b4870520d032449e0ef",
+        "0760022d2e37646709b44890",
+        "62a21dba626ee6858257b953",
+        "bd2de41d723d4aa681a5fc5a",
+        "4a402680baa8b738dc7bef18",
+        "5f77f9a18e1cf546a2377d26",
+        "4b1e3dde7a4297de78d51a50"
+      ]
+    },
+    {
+      "duration_ms": 529,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "37c26eb6bb138091994f28dd",
+        "6b1edcc4b4d2ac30cac88ad4"
+      ],
+      "focus_sensor_id": "a7564f816c79c5535ea35967",
+      "hits_top10": 1,
+      "id": "derived_current_temp_comp_v1",
+      "mrr": 0.3333333333333333,
+      "precision_at_10": 0.1,
+      "precision_at_20": 0.05,
+      "precision_at_5": 0.2,
+      "result_count": 20,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 7,
+      "strong_coverage": true,
+      "tags": [
+        "derived",
+        "current",
+        "temperature",
+        "temp_compensation",
+        "ground_truth:config_dependency"
+      ],
+      "top_sensor_ids": [
+        "849f6067fbbd8a0267d2fee3",
+        "9ab25497bae062b8c35c4001",
+        "37c26eb6bb138091994f28dd",
+        "2a61f61c636e4b76be08da3c",
+        "4aa388304bef02c5ff8dc468",
+        "ab78d386116c3c569fa278eb",
+        "f422086f07621b4d075f010c",
+        "c54f963e24a1c1a7becadc04",
+        "1e9bfdabb25c97a8a6ac91d5",
+        "69b43a1932e9837ea38ebb32",
+        "45e020b4fcbeca9e5828eb1b",
+        "c692079025c885c2cf10f3a2",
+        "ce902610fb620cd60c0aac2c",
+        "41eb43907cf9b2cf29922695",
+        "9f9e1b173ca3a85d09c0c675",
+        "91af9586787db88cbe609222",
+        "5d8545f4fa18f9f69c818d1e",
+        "b146e6c8a2c64dd5921f51fd",
+        "2bde9a99ee045b6a819617e9",
+        "0d10c55082e32c662cc4f44f"
+      ]
+    },
+    {
+      "duration_ms": 521,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "adab2ed19bb1b9dfe189fa81",
+        "48cb1ea6e594d19d5060b5f2"
+      ],
+      "focus_sensor_id": "86c805faf8f1b6d52f3a2fcb",
+      "hits_top10": 0,
+      "id": "derived_reservoir_depth_temp_comp_v2_dependency",
+      "mrr": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "precision_at_5": 0.0,
+      "result_count": 20,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 4,
+      "strong_coverage": true,
+      "tags": [
+        "derived",
+        "water_level",
+        "temperature",
+        "temp_compensation",
+        "ground_truth:config_dependency"
+      ],
+      "top_sensor_ids": [
+        "11f4bdb5739774c9c7ba668b",
+        "ea5745e00cb0227e046f6b88",
+        "849f6067fbbd8a0267d2fee3",
+        "f422086f07621b4d075f010c",
+        "30a76e47b73828d75069323b",
+        "41eb43907cf9b2cf29922695",
+        "69edc2de963aa8c327159042",
+        "2bde9a99ee045b6a819617e9",
+        "91af9586787db88cbe609222",
+        "5d8545f4fa18f9f69c818d1e",
+        "b146e6c8a2c64dd5921f51fd",
+        "39a39c6a021fc7ca8a8e1705",
+        "9f9e1b173ca3a85d09c0c675",
+        "8b1d3b4870520d032449e0ef",
+        "0760022d2e37646709b44890",
+        "62a21dba626ee6858257b953",
+        "bd2de41d723d4aa681a5fc5a",
+        "4a402680baa8b738dc7bef18",
+        "5f77f9a18e1cf546a2377d26",
+        "4b1e3dde7a4297de78d51a50"
+      ]
+    },
+    {
+      "duration_ms": 527,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "af370b03a396ea19681af459"
+      ],
+      "focus_sensor_id": "d12291c2fa44261a4a310a4b",
+      "hits_top10": 0,
+      "id": "derived_of_derived_passthrough",
+      "mrr": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "precision_at_5": 0.0,
+      "result_count": 20,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 7,
+      "strong_coverage": true,
+      "tags": [
+        "derived",
+        "power",
+        "ground_truth:config_dependency"
+      ],
+      "top_sensor_ids": [
+        "849f6067fbbd8a0267d2fee3",
+        "37c26eb6bb138091994f28dd",
+        "9ab25497bae062b8c35c4001",
+        "2a61f61c636e4b76be08da3c",
+        "4aa388304bef02c5ff8dc468",
+        "ab78d386116c3c569fa278eb",
+        "f422086f07621b4d075f010c",
+        "c54f963e24a1c1a7becadc04",
+        "1e9bfdabb25c97a8a6ac91d5",
+        "69b43a1932e9837ea38ebb32",
+        "45e020b4fcbeca9e5828eb1b",
+        "c692079025c885c2cf10f3a2",
+        "ce902610fb620cd60c0aac2c",
+        "41eb43907cf9b2cf29922695",
+        "9f9e1b173ca3a85d09c0c675",
+        "91af9586787db88cbe609222",
+        "5d8545f4fa18f9f69c818d1e",
+        "b146e6c8a2c64dd5921f51fd",
+        "2bde9a99ee045b6a819617e9",
+        "0d10c55082e32c662cc4f44f"
+      ]
+    },
+    {
+      "duration_ms": 527,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "4b1e3dde7a4297de78d51a50",
+        "82b00b9d1e3b4cb930881cf2"
+      ],
+      "focus_sensor_id": "0d7965b01ac624c96c31b324",
+      "hits_top10": 1,
+      "id": "pv_power_voltage_current",
+      "mrr": 0.25,
+      "precision_at_10": 0.1,
+      "precision_at_20": 0.05,
+      "precision_at_5": 0.2,
+      "result_count": 20,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 4,
+      "strong_coverage": true,
+      "tags": [
+        "power",
+        "voltage",
+        "current",
+        "renogy_bt2",
+        "physical_relation:pv"
+      ],
+      "top_sensor_ids": [
+        "3fc3024621abbaba11c37c52",
+        "5f77f9a18e1cf546a2377d26",
+        "f422086f07621b4d075f010c",
+        "4b1e3dde7a4297de78d51a50",
+        "33215c53e6a6611051ad85fe",
+        "11f4bdb5739774c9c7ba668b",
+        "ea5745e00cb0227e046f6b88",
+        "37c26eb6bb138091994f28dd",
+        "45e020b4fcbeca9e5828eb1b",
+        "9ab25497bae062b8c35c4001",
+        "1e9bfdabb25c97a8a6ac91d5",
+        "91af9586787db88cbe609222",
+        "83ce40d824a4ee5e2d0ce8c5",
+        "eb079ae0fbf0430077c7e5cf",
+        "41eb43907cf9b2cf29922695",
+        "39a39c6a021fc7ca8a8e1705",
+        "9f9e1b173ca3a85d09c0c675",
+        "849f6067fbbd8a0267d2fee3",
+        "bd2de41d723d4aa681a5fc5a",
+        "4a402680baa8b738dc7bef18"
+      ]
+    },
+    {
+      "duration_ms": 521,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "5700bdc1793259b736fabc69",
+        "e829b957584dd849e2586979"
+      ],
+      "focus_sensor_id": "5e7be23ca4894114a8c7ca33",
+      "hits_top10": 0,
+      "id": "battery_voltage_current_soc",
+      "mrr": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "precision_at_5": 0.0,
+      "result_count": 0,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 0,
+      "strong_coverage": false,
+      "tags": [
+        "voltage",
+        "current",
+        "percentage",
+        "renogy_bt2",
+        "physical_relation:battery"
+      ],
+      "top_sensor_ids": []
+    },
+    {
+      "duration_ms": 520,
+      "end": "2026-02-11T16:30:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "8e3d82ed05eb47da0b4d7bb4",
+        "ca845b715f0f44d85264a438"
+      ],
+      "focus_sensor_id": "2e0d384be55ce6b4c2e2e8a7",
+      "hits_top10": 0,
+      "id": "load_power_voltage_current",
+      "mrr": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "precision_at_5": 0.0,
+      "result_count": 0,
+      "start": "2026-02-11T13:30:00Z",
+      "strong_count": 0,
+      "strong_coverage": false,
+      "tags": [
+        "power",
+        "voltage",
+        "current",
+        "renogy_bt2",
+        "physical_relation:load"
+      ],
+      "top_sensor_ids": []
+    },
+    {
+      "duration_ms": 267,
+      "end": "2026-02-11T05:12:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "f422086f07621b4d075f010c",
+        "25086b7002f7a662ef81fb7f",
+        "62a21dba626ee6858257b953"
+      ],
+      "focus_sensor_id": "91af9586787db88cbe609222",
+      "hits_top10": 1,
+      "id": "pressure_incident_network_health",
+      "mrr": 1.0,
+      "precision_at_10": 0.1,
+      "precision_at_20": 0.05,
+      "precision_at_5": 0.2,
+      "result_count": 20,
+      "start": "2026-02-11T04:12:00Z",
+      "strong_count": 19,
+      "strong_coverage": true,
+      "tags": [
+        "pressure",
+        "ping",
+        "latency",
+        "incident_like",
+        "node_health"
+      ],
+      "top_sensor_ids": [
+        "f422086f07621b4d075f010c",
+        "ce902610fb620cd60c0aac2c",
+        "ab78d386116c3c569fa278eb",
+        "15dc80bb4e6e5fa232b21f2d",
+        "4aa388304bef02c5ff8dc468",
+        "4a402680baa8b738dc7bef18",
+        "33215c53e6a6611051ad85fe",
+        "c692079025c885c2cf10f3a2",
+        "45e020b4fcbeca9e5828eb1b",
+        "c54f963e24a1c1a7becadc04",
+        "69b43a1932e9837ea38ebb32",
+        "83ce40d824a4ee5e2d0ce8c5",
+        "41eb43907cf9b2cf29922695",
+        "9f9e1b173ca3a85d09c0c675",
+        "3eb544e51d491d53574e0995",
+        "31d1e0fd4640c7fb17a275e2",
+        "849f6067fbbd8a0267d2fee3",
+        "bd2de41d723d4aa681a5fc5a",
+        "39a39c6a021fc7ca8a8e1705",
+        "0d10c55082e32c662cc4f44f"
+      ]
+    },
+    {
+      "duration_ms": 515,
+      "end": "2026-02-11T06:00:00Z",
+      "error": null,
+      "expected_related_sensor_ids": [
+        "812bed3cf929199a527ff9d4",
+        "af1c59b43e1fab256883951a",
+        "3772dc39467b5a47a55ac604"
+      ],
+      "focus_sensor_id": "d0bc967860ae269107ab90aa",
+      "hits_top10": 0,
+      "id": "cpu_aggregate_vs_cores",
+      "mrr": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "precision_at_5": 0.0,
+      "result_count": 0,
+      "start": "2026-02-11T04:00:00Z",
+      "strong_count": 0,
+      "strong_coverage": false,
+      "tags": [
+        "cpu_percent",
+        "node_health",
+        "same_node"
+      ],
+      "top_sensor_ids": []
+    }
+  ]
+}

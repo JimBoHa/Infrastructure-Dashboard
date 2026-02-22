@@ -1,0 +1,20 @@
+{
+  "ready": true,
+  "status": "ready",
+  "adapter": {
+    "name": "hci0",
+    "address": "AA:BB:CC:DD:EE:01",
+    "powered": true,
+    "discoverable": true,
+    "pairable": true
+  },
+  "advertisements": [
+    {
+      "name": "Farm Node Provisioning",
+      "service_uuid": "12345678-1234-5678-1234-56789abcdef0",
+      "manufacturer": "SimLab",
+      "rssi": -45
+    }
+  ],
+  "updated_at": "2025-01-01T00:00:00Z"
+}

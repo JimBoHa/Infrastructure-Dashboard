@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "path": "apps/core-server-rs/src/routes/analytics.rs",
+      "token": "fallback",
+      "max_count": 1,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/core-server-rs/src/routes/backups.rs",
+      "token": "fallback",
+      "max_count": 2,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/core-server-rs/src/routes/backups_exports.rs",
+      "token": "fallback",
+      "max_count": 5,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/core-server-rs/src/routes/controller_config.rs",
+      "token": "fallback",
+      "max_count": 6,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/dashboard-web/src/lib/api.ts",
+      "token": "fallback",
+      "max_count": 7,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/farmctl/src/config.rs",
+      "token": "fallback",
+      "max_count": 5,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/farmctl/src/server.rs",
+      "token": "fallback",
+      "max_count": 2,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/config.py",
+      "token": "fallback",
+      "max_count": 1,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/hardware/ads1263_hat.py",
+      "token": "demo",
+      "max_count": 2,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/hardware/ads1263_hat.py",
+      "token": "fallback",
+      "max_count": 2,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/hardware/gpio.py",
+      "token": "fallback",
+      "max_count": 1,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/hardware/gpio.py",
+      "token": "stub",
+      "max_count": 5,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/hardware/renogy_bt2.py",
+      "token": "fallback",
+      "max_count": 1,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/routers/provisioning.py",
+      "token": "fallback",
+      "max_count": 1,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/services/ble_provisioning.py",
+      "token": "fallback",
+      "max_count": 1,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/node-agent/app/services/publisher.py",
+      "token": "fallback",
+      "max_count": 2,
+      "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    }
+  ]
+}

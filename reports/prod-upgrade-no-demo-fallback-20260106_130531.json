@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "handoff": false,
+  "farmctl": [
+    {
+      "ok": true,
+      "status": null,
+      "command": "/usr/local/farm-dashboard/bin/farmctl upgrade --bundle /Users/Shared/FarmDashboardController-0.1.9.14.dmg --config /Users/Shared/FarmDashboard/setup/config.json",
+      "stdout": "Upgraded to 0.1.9.14",
+      "stderr": "xattr: /Users/Shared/FarmDashboardController-0.1.9.14.dmg: No such xattr: com.apple.quarantine"
+    }
+  ],
+  "launchd": []
+}

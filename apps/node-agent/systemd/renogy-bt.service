@@ -1,0 +1,19 @@
+[Unit]
+Description=Farm Renogy BT-2 Collector (renogy-bt)
+After=network-online.target bluetooth.target node-agent.service
+Wants=network-online.target bluetooth.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/node-agent.env
+WorkingDirectory=/opt/node-agent
+ExecStart=/usr/local/bin/node-agent-python -m app.renogy_bt_service
+Restart=on-failure
+RestartSec=5
+User=farmnode
+Group=farmnode
+
+[Install]
+WantedBy=multi-user.target

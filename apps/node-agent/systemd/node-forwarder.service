@@ -1,0 +1,18 @@
+[Unit]
+Description=Farm Node Forwarder (durable telemetry spool + replay)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+EnvironmentFile=-/etc/node-agent.env
+WorkingDirectory=/opt/node-agent
+ExecStart=/usr/local/bin/node-forwarder
+Restart=always
+RestartSec=5
+User=farmnode
+Group=farmnode
+
+[Install]
+WantedBy=multi-user.target

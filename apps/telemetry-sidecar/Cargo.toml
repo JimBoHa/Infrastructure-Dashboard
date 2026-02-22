@@ -1,0 +1,44 @@
+[package]
+name = "telemetry-sidecar"
+version = "0.1.0"
+authors = ["Farm Dashboard"]
+edition = "2021"
+description = "High-throughput MQTT -> Timescale ingest sidecar with gRPC control plane"
+license = "Apache-2.0"
+build = "build.rs"
+
+[dependencies]
+anyhow = "1.0"
+bytes = "1.7"
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+futures = "0.3"
+opentelemetry = { version = "0.23", features = ["trace"] }
+opentelemetry-otlp = { version = "0.16", default-features = false, features = ["http-proto", "reqwest-client", "trace"] }
+opentelemetry_sdk = { version = "0.23", features = ["trace", "rt-tokio"] }
+prost = "0.13"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rumqttc = "0.25.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+simd-json = { version = "0.13", features = ["serde_impl"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+sysinfo = "0.33.1"
+sha2 = "0.10"
+thiserror = "1.0"
+tokio = { version = "1.41", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+tonic = { version = "0.12", features = ["transport"] }
+tonic-health = "0.12"
+tracing = "0.1"
+tracing-opentelemetry = "0.24"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+uuid = { version = "1", features = ["serde", "v4"] }
+
+[build-dependencies]
+protoc-bin-vendored = "3.2.0"
+tonic-build = "0.12"
+
+[profile.release]
+lto = true
+codegen-units = 1

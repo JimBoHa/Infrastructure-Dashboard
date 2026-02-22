@@ -1,0 +1,13 @@
+/opt/node-agent/storage/logs/*.log {
+    rotate 14
+    daily
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    create 0640 pi adm
+    postrotate
+        systemctl kill -s SIGUSR1 node-agent.service >/dev/null 2>&1 || true
+    endscript
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=Verify Farm Node Agent backups are current
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/node-agent.env
+ExecStart=/usr/local/bin/node-agent-verify-backups

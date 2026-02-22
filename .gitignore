@@ -1,0 +1,129 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+.Python
+pythonenv*
+.env
+.venv
+.venv-platformio/
+venv/
+build/
+dist/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.coverage*
+htmlcov/
+.mypy_cache/
+ruff_cache/
+.pyre/
+.pytype/
+
+# Node / JavaScript
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+.next/
+.nuxt/
+dist/
+build/
+storybook-static/
+.DS_Store?
+apps/dashboard-web/public/vendor/maplibre-gl-csp-worker.js
+
+# Core server runtime artifacts
+apps/core-server/storage/
+
+# Sim Lab runtime artifacts
+storage/sim_lab/
+storage/pi5_sim/
+storage/backups/
+
+# Node agent runtime artifacts (keep templates tracked)
+apps/node-agent/storage/*
+!apps/node-agent/storage/node_config.example.json
+!apps/node-agent/storage/node_config.template.json
+
+# ESP32 firmware local config + PlatformIO artifacts
+apps/esp32-firmware/include/config.h
+apps/esp32-firmware/include/farmdash_config.h
+apps/esp32-firmware/.pio/
+
+# Rust build artifacts
+target/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Xcode / iOS
+DerivedData/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcscmblueprint
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Swift Package Manager / CocoaPods
+.build/
+.swiftpm/
+Packages/
+Package.pins
+Package.resolved
+Pods/
+
+# Tooling
+.idea/
+.vscode/
+*.iml
+openapitools.json
+.npm-cache/
+.cargo/
+.rustup/
+
+# Manual visual verification artifacts
+manual_screenshots/
+manual_screenshots_web/
+manual_screenshots_ios/
+manual_screenshots_watch/
+
+# Local E2E/test artifacts (do not commit logs)
+reports/**/*.log
+reports/e2e-*/
+reports/rcs-parity-smoke/
+reports/rcs-parity-http-smoke/
+
+# Maestro HTML report output
+report.html
+
+.gemini/
+gha-creds-*.json
+.claude/settings.local.json
+docs/prompts/
+
+# Agent scratch / local vector DB caches
+~/
+
+# Keep simulator/deployment tooling and runbooks tracked.
+# (Do not add ignore entries that would exclude these paths.)
+.playwright-mcp/

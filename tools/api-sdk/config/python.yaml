@@ -1,0 +1,4 @@
+packageName: generated_api
+projectName: farm-dashboard-api
+packageVersion: 0.1.0
+generateSourceCodeOnly: true

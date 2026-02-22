@@ -1,0 +1,16 @@
+import { configDefaults, defineConfig } from "vitest/config";
+
+export default defineConfig(async () => {
+  const { default: tsconfigPaths } = await import("vite-tsconfig-paths");
+
+  return {
+    plugins: [tsconfigPaths()],
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./vitest.setup.ts"],
+      css: true,
+      globals: true,
+      exclude: [...configDefaults.exclude, "playwright/**"],
+    },
+  };
+});

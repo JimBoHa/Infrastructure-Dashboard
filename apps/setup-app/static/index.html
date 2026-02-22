@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Farm Dashboard Setup</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <div class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Farm Dashboard</p>
+          <h1>Production Setup Wizard</h1>
+          <p class="subtitle">
+            Install the native stack with launchd services, guided checks, and a
+            repeatable configuration plan.
+          </p>
+        </div>
+        <div class="steps" id="step-indicator">
+          <span class="step active" data-step="0">Welcome</span>
+          <span class="step" data-step="1">Configure</span>
+          <span class="step" data-step="2">Preflight</span>
+          <span class="step" data-step="3">Plan</span>
+          <span class="step" data-step="4">Operations</span>
+        </div>
+      </header>
+
+      <main class="panels">
+        <section class="panel active" data-step="0">
+          <h2>Start with a clean plan</h2>
+          <p>
+            This setup app builds a native service stack (LaunchDaemons) for the
+            controller core server (serving both the dashboard UI and `/api/*`),
+            telemetry sidecar, and native DB/MQTT/Redis services. You'll validate
+            prerequisites, capture configuration, and generate a launch plan.
+          </p>
+          <div class="callout">
+            <strong>Tip:</strong> You can re-run this wizard anytime. It reloads
+            your last saved configuration and updates the service plan.
+          </div>
+        </section>
+
+        <section class="panel" data-step="1">
+          <div class="panel-header">
+            <div>
+              <h2>Configuration</h2>
+              <p class="muted">Bundle and installer paths are auto-detected. Advanced settings stay hidden unless you need them.</p>
+            </div>
+            <button class="btn ghost" id="toggle-advanced">Show advanced</button>
+          </div>
+          <form id="config-form" autocomplete="off" data-advanced="false">
+            <div class="grid">
+              <label class="full">
+                Controller bundle DMG path
+                <input type="text" name="bundle_path" />
+              </label>
+              <label class="full">
+                MQTT host (controller LAN IP for nodes)
+                <div class="input-row">
+                  <input type="text" name="mqtt_host" />
+                  <button class="btn ghost small" type="button" id="detect-mqtt-host">
+                    Use this Mac’s IP
+                  </button>
+                </div>
+              </label>
+              <label>
+                Install root
+                <input type="text" name="install_root" />
+              </label>
+              <label>
+                Data root
+                <input type="text" name="data_root" />
+              </label>
+              <label>
+                Backup path
+                <input type="text" name="backup_root" />
+              </label>
+            </div>
+            <div class="grid advanced-grid">
+              <label class="advanced-field">
+                Logs root
+                <input type="text" name="logs_root" />
+              </label>
+              <label class="advanced-field">
+                Core binary path
+                <input type="text" name="core_binary" />
+              </label>
+              <label class="advanced-field">
+                Telemetry sidecar path
+                <input type="text" name="sidecar_binary" />
+              </label>
+              <label class="advanced-field">
+                Controller port
+                <input type="number" name="core_port" min="1" max="65535" />
+              </label>
+              <label class="advanced-field">
+                MQTT port
+                <input type="number" name="mqtt_port" min="1" max="65535" />
+              </label>
+              <label class="advanced-field">
+                Redis port
+                <input type="number" name="redis_port" min="1" max="65535" />
+              </label>
+              <label class="advanced-field full">
+                Database URL
+                <input type="text" name="database_url" />
+              </label>
+              <label class="advanced-field">
+                Backup retention (days)
+                <input type="number" name="backup_retention_days" min="1" max="3650" />
+              </label>
+              <label class="advanced-field">
+                farmctl path
+                <input type="text" name="farmctl_path" />
+              </label>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" data-step="2">
+          <div class="panel-header">
+            <h2>Preflight checks</h2>
+            <button class="btn" id="run-preflight">Run checks</button>
+          </div>
+          <div class="checklist" id="preflight-results">
+            <p class="muted">Run checks to validate your configuration and environment.</p>
+          </div>
+        </section>
+
+        <section class="panel" data-step="3">
+          <div class="panel-header">
+            <h2>Launch plan</h2>
+            <button class="btn" id="generate-plan">Generate plan</button>
+          </div>
+          <div class="plan" id="plan-output">
+            <p class="muted">Generate the plan to see launchd files and commands.</p>
+          </div>
+        </section>
+
+        <section class="panel" data-step="4">
+          <div class="panel-header">
+            <h2>Install & operations</h2>
+            <div class="panel-actions">
+              <button class="btn" id="run-health">Health check</button>
+              <button class="btn" id="export-diagnostics">Export diagnostics</button>
+            </div>
+          </div>
+          <div class="install-actions">
+            <button class="btn primary" id="run-install">Install</button>
+            <button class="btn" id="run-upgrade">Upgrade</button>
+            <button class="btn ghost" id="run-rollback">Rollback</button>
+          </div>
+          <div class="plan" id="install-output">
+            <p class="muted">Run install/upgrade to apply bundle assets and launchd services.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="actions">
+        <button class="btn ghost" id="prev-step">Back</button>
+        <button class="btn primary" id="next-step">Next</button>
+      </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

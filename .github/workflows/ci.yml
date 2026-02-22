@@ -1,0 +1,342 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: "Test tier to run"
+        type: choice
+        options: [smoke, full]
+        default: smoke
+  schedule:
+    - cron: "0 3 * * *"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.scope.outputs.core }}
+      node: ${{ steps.scope.outputs.node }}
+      web: ${{ steps.scope.outputs.web }}
+      sdk: ${{ steps.scope.outputs.sdk }}
+      docs: ${{ steps.scope.outputs.docs }}
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+      test_level: ${{ steps.level.outputs.test_level }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            core:
+              - "apps/core-server-rs/**"
+              - "!apps/core-server-rs/**/*.md"
+              - "apps/telemetry-sidecar/**"
+              - "!apps/telemetry-sidecar/**/*.md"
+              - "infra/migrations/**"
+              - "tools/**"
+              - "!tools/**/*.md"
+            node:
+              - "apps/node-agent/**"
+              - "!apps/node-agent/**/*.md"
+            web:
+              - "apps/dashboard-web/**"
+              - "!apps/dashboard-web/**/*.md"
+            sdk:
+              - "apps/core-server-rs/**"
+              - "!apps/core-server-rs/**/*.md"
+              - "apps/core-server-rs/openapi/**"
+              - "tools/api-sdk/**"
+              - "apps/dashboard-web/src/lib/api-client/**"
+              - "apps/node-agent/app/generated_api/**"
+            docs:
+              - "**/*.md"
+              - "docs/**"
+              - "project_management/**"
+              - "project_management/archive/**"
+              - "reports/**"
+              - "report.html"
+              - "manual_screenshots_*/**"
+              - ".github/**"
+      - name: Resolve CI scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CORE_CHANGED: ${{ steps.filter.outputs.core }}
+          NODE_CHANGED: ${{ steps.filter.outputs.node }}
+          WEB_CHANGED: ${{ steps.filter.outputs.web }}
+          SDK_CHANGED: ${{ steps.filter.outputs.sdk }}
+          DOCS_CHANGED: ${{ steps.filter.outputs.docs }}
+          HAS_FULL_LABEL: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-full') }}
+        run: |
+          force_all="false"
+          if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" || "$HAS_FULL_LABEL" == "true" ]]; then
+            force_all="true"
+          fi
+
+          if [[ "$force_all" == "true" ]]; then
+            core="true"
+            node="true"
+            web="true"
+            sdk="true"
+            docs="false"
+          else
+            core="$CORE_CHANGED"
+            node="$NODE_CHANGED"
+            web="$WEB_CHANGED"
+            sdk="$SDK_CHANGED"
+            docs="$DOCS_CHANGED"
+          fi
+
+          if [[ "$docs" == "true" \
+            && "$core" != "true" \
+            && "$node" != "true" \
+            && "$web" != "true" \
+            && "$sdk" != "true" ]]; then
+            docs_only="true"
+          else
+            docs_only="false"
+          fi
+
+          echo "core=$core" >> "$GITHUB_OUTPUT"
+          echo "node=$node" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "sdk=$sdk" >> "$GITHUB_OUTPUT"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+      - name: Select test level
+        id: level
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_LEVEL: ${{ inputs.test_level }}
+          HAS_FULL_LABEL: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-full') }}
+        run: |
+          level="smoke"
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            level="full"
+          fi
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && -n "$DISPATCH_LEVEL" ]]; then
+            level="$DISPATCH_LEVEL"
+          fi
+          if [[ "$EVENT_NAME" == "pull_request" && "$HAS_FULL_LABEL" == "true" ]]; then
+            level="full"
+          fi
+          echo "test_level=$level" >> "$GITHUB_OUTPUT"
+
+  docs:
+    needs: changes
+    if: needs.changes.outputs.docs_only == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Docs-only change; skipping heavy CI."
+
+  integrity_guardrail:
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run production token guardrail
+        run: make ci-integrity-guardrail
+
+  core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run smoke tests
+        if: needs.changes.outputs.test_level == 'smoke'
+        run: make ci-core-smoke
+      - name: Run full tests
+        if: needs.changes.outputs.test_level == 'full'
+        run: make ci-core
+
+  api_sdk:
+    needs: changes
+    if: needs.changes.outputs.sdk == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install API generator
+        run: npm --prefix tools/api-sdk install
+      - name: Generate SDKs
+        run: python tools/api-sdk/generate.py
+      - name: Check SDK drift
+        run: git diff --exit-code
+
+  node_agent:
+    needs: changes
+    if: needs.changes.outputs.node == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "poetry"
+          cache-dependency-path: apps/node-agent/poetry.lock
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Install node-agent deps
+        working-directory: apps/node-agent
+        run: poetry install
+      - name: Run smoke tests
+        if: needs.changes.outputs.test_level == 'smoke'
+        run: make ci-node-smoke
+      - name: Run full tests
+        if: needs.changes.outputs.test_level == 'full'
+        run: make ci-node
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/dashboard-web/package-lock.json
+      - name: Validate release version (web)
+        run: python tools/release/release.py validate --targets web
+      - name: Install deps
+        working-directory: apps/dashboard-web
+        run: npm ci
+      - name: Lint
+        working-directory: apps/dashboard-web
+        run: npm run lint
+      - name: Run smoke tests
+        if: needs.changes.outputs.test_level == 'smoke'
+        run: make ci-web-smoke
+      - name: Run full tests
+        if: needs.changes.outputs.test_level == 'full'
+        run: make ci-web-full
+
+  sim_lab_smoke:
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.web == 'true'
+    runs-on: macos-latest
+    env:
+      FARM_SIM_LAB_FORECAST_URL: http://127.0.0.1:9103/forecast.json
+      FARM_SIM_LAB_RATES_URL: http://127.0.0.1:9104/rates.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "poetry"
+          cache-dependency-path: apps/node-agent/poetry.lock
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Install node-agent deps
+        working-directory: apps/node-agent
+        run: poetry install
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/dashboard-web/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Install dashboard deps
+        working-directory: apps/dashboard-web
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: apps/dashboard-web
+        run: npm run playwright:install
+      - name: Ensure native build prerequisites
+        run: |
+          if ! command -v cmake >/dev/null 2>&1; then
+            brew install cmake
+          fi
+      - name: Run installer E2E (wizard-driven)
+        run: FARM_E2E_KEEP_TEMP=1 make e2e-setup-smoke
+      - name: Run production E2E smoke
+        run: make e2e-web-smoke
+      - name: Cleanup installer E2E temp install
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import subprocess
+          
+          state_path = pathlib.Path("reports/e2e-setup-smoke/last_state.json")
+          if not state_path.exists():
+            raise SystemExit(0)
+          
+          payload = json.loads(state_path.read_text())
+          if not payload.get("preserved"):
+            raise SystemExit(0)
+          
+          install_root = pathlib.Path(payload["install_root"])
+          config_path = pathlib.Path(payload["config_path"])
+          farmctl = install_root / "bin" / "farmctl"
+          if not farmctl.exists():
+            raise SystemExit(0)
+          
+          env = os.environ.copy()
+          env["FARM_SETUP_STATE_DIR"] = payload.get("state_dir", str(config_path.parent))
+          subprocess.run(
+            [
+              str(farmctl),
+              "--profile",
+              "e2e",
+              "uninstall",
+              "--config",
+              str(config_path),
+              "--remove-roots",
+              "--yes",
+            ],
+            check=False,
+            env=env,
+          )
+          PY

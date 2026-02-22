@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2025-01-01T00:00:00Z",
+  "samples": [
+    {
+      "field": "rain_mm",
+      "horizon_hours": 24,
+      "value": 3.2
+    },
+    {
+      "field": "rain_mm",
+      "horizon_hours": 48,
+      "value": 1.1
+    },
+    {
+      "field": "temp_c",
+      "horizon_hours": 24,
+      "value": 22.5
+    },
+    {
+      "field": "wind_mps",
+      "horizon_hours": 24,
+      "value": 4.6
+    }
+  ]
+}

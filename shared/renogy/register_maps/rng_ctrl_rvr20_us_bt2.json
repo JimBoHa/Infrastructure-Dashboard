@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "device_type": "renogy_bt2",
+  "model": "RNG-CTRL-RVR20-US",
+  "notes": [
+    "This register map is intentionally schema-driven so unsupported settings can be hidden until validated on hardware.",
+    "Addresses are Modbus holding registers; scaling rules describe how raw integer registers map to engineering units."
+  ],
+  "groups": [
+    {
+      "id": "connection",
+      "label": "Connection",
+      "advanced": false
+    },
+    {
+      "id": "battery_profile",
+      "label": "Battery profile",
+      "advanced": false
+    },
+    {
+      "id": "advanced_raw",
+      "label": "Advanced (raw registers)",
+      "advanced": true
+    }
+  ],
+  "fields": [
+    {
+      "key": "battery_capacity_ah",
+      "label": "Battery capacity (Ah)",
+      "group": "battery_profile",
+      "address": "0xE002",
+      "count": 1,
+      "type": "u16",
+      "unit": "Ah",
+      "scale": 1.0,
+      "min": 10,
+      "max": 2000,
+      "writable": true,
+      "risk": "medium"
+    },
+    {
+      "key": "settings_reg_e003_raw",
+      "label": "Settings register 0xE003 (raw)",
+      "group": "advanced_raw",
+      "address": "0xE003",
+      "count": 1,
+      "type": "u16",
+      "unit": null,
+      "scale": 1.0,
+      "min": 0,
+      "max": 65535,
+      "writable": true,
+      "risk": "high"
+    },
+    {
+      "key": "settings_reg_e004_raw",
+      "label": "Settings register 0xE004 (raw)",
+      "group": "advanced_raw",
+      "address": "0xE004",
+      "count": 1,
+      "type": "u16",
+      "unit": null,
+      "scale": 1.0,
+      "min": 0,
+      "max": 65535,
+      "writable": true,
+      "risk": "high"
+    }
+  ]
+}
+

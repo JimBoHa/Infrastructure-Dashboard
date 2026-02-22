@@ -1,0 +1,1352 @@
+{
+  "job_id": "a66ef24e-66fe-4c93-a1c2-755b7f140b40",
+  "result": {
+    "inspection": {
+      "cold_path": null,
+      "datasets": {
+        "metrics/v1": {
+          "computed_through_ts": "2026-01-24T16:52:51.645740+00:00",
+          "partitions": {
+            "2026-01-05": {
+              "location": "hot",
+              "shards": {}
+            },
+            "2026-01-06": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 2944
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 3098
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 1901
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 2730
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 3247
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 4242
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 2155
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 1976
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 2570
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 2853
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 2294
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 2470
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 2613
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 3992
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 3185
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 2267
+                }
+              }
+            },
+            "2026-01-07": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 5972
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 7726
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 3621
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 6161
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 7743
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 16098
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 5163
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 3175
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 6469
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 7451
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 4702
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 5202
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 6670
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 8490
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 8299
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 4636
+                }
+              }
+            },
+            "2026-01-08": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 7274
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 13230
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 5819
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 7516
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 10814
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 17856
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 7140
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 4689
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 7575
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 9554
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 6773
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 9273
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 10991
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 15133
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 14269
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 7220
+                }
+              }
+            },
+            "2026-01-09": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 53300
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 22685
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 40818
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 38131
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 61712
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 64618
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 21769
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 14167
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 16064
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 28221
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 40154
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 52672
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 37407
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 27758
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 30860
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 44178
+                }
+              }
+            },
+            "2026-01-10": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 56538
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 23293
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 45676
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 40127
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 68771
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 71352
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 17600
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 17847
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 17687
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 25991
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 42734
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 58141
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 38858
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 32473
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 29377
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 49043
+                }
+              }
+            },
+            "2026-01-11": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 59306
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 26436
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 45211
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 39135
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 68296
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 71538
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 132314
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 21942
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 162745
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 239104
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 346517
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 188013
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 150760
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 36418
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 141853
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 48027
+                }
+              }
+            },
+            "2026-01-12": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 58385
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 23226
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 42268
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 39402
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 66226
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 69837
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 149709
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 18631
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 180631
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 279850
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 394807
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 198187
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 175840
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 31825
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 170785
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 46982
+                }
+              }
+            },
+            "2026-01-13": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 154023
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 16786
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 164375
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 196818
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 57151
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 62930
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 142136
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 13114
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 174334
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 277011
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 411203
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 333163
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 161419
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 28341
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 179265
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 194493
+                }
+              }
+            },
+            "2026-01-14": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 171766
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 14048
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 190122
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 194957
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 56503
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 115903
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 482941
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 11427
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 174152
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 282063
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 403704
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 356943
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 164156
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 26047
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 150052
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 205370
+                }
+              }
+            },
+            "2026-01-15": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 172420
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 15194
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 181841
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 986842
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 48678
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 1142581
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1326711
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 29908
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 198301
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 284061
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 294275
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 359845
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 197482
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 28946
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 894700
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 186620
+                }
+              }
+            },
+            "2026-01-16": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 180244
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 27220
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 193570
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1355223
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 54890
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 1149306
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1320951
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 23391
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 194235
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 285105
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 226824
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 366882
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 182426
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 294308
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1221858
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 169901
+                }
+              }
+            },
+            "2026-01-17": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 182272
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 26881
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 188448
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1398731
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 56535
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 1160806
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1342664
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 40515
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 210804
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 284486
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 183637
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 371700
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 205767
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 1127332
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1371359
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 170287
+                }
+              }
+            },
+            "2026-01-18": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 183945
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 24315
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 191656
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1393231
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 57122
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 1150990
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1343826
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 40290
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 213356
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 288407
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 192637
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 371910
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 206681
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 1121777
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1380520
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 171001
+                }
+              }
+            },
+            "2026-01-19": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 181823
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 24929
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 190334
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1405045
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 56479
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 1146107
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1353913
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 41144
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 212798
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 287042
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 180119
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 369727
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 206775
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 1124961
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1382078
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 171178
+                }
+              }
+            },
+            "2026-01-20": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 185804
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 28345
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 191048
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1408043
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 59372
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 1147594
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1351795
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 42358
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 1025641
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 288005
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 181154
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 375089
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 207862
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 1168712
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1390410
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 174554
+                }
+              }
+            },
+            "2026-01-21": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 192184
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 32983
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 191731
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1408724
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 65524
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 559804
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1355421
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 44019
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 981511
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 290181
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 179626
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 376824
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 213344
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 1186858
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1812356
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 179134
+                }
+              }
+            },
+            "2026-01-22": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 143819
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 45495
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 145631
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 1152154
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 53108
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 63262
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 1144903
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 36205
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 171236
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 219029
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 167154
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 296772
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 167465
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 1027191
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 2179010
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 133183
+                }
+              }
+            },
+            "2026-01-23": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 1,
+                  "total_bytes": 107651
+                },
+                "01": {
+                  "parquet_files": 1,
+                  "total_bytes": 35885
+                },
+                "02": {
+                  "parquet_files": 1,
+                  "total_bytes": 112998
+                },
+                "03": {
+                  "parquet_files": 1,
+                  "total_bytes": 998875
+                },
+                "04": {
+                  "parquet_files": 1,
+                  "total_bytes": 43833
+                },
+                "05": {
+                  "parquet_files": 1,
+                  "total_bytes": 54363
+                },
+                "06": {
+                  "parquet_files": 1,
+                  "total_bytes": 987610
+                },
+                "07": {
+                  "parquet_files": 1,
+                  "total_bytes": 30446
+                },
+                "08": {
+                  "parquet_files": 1,
+                  "total_bytes": 140429
+                },
+                "09": {
+                  "parquet_files": 1,
+                  "total_bytes": 170144
+                },
+                "10": {
+                  "parquet_files": 1,
+                  "total_bytes": 103187
+                },
+                "11": {
+                  "parquet_files": 1,
+                  "total_bytes": 237315
+                },
+                "12": {
+                  "parquet_files": 1,
+                  "total_bytes": 135862
+                },
+                "13": {
+                  "parquet_files": 1,
+                  "total_bytes": 914692
+                },
+                "14": {
+                  "parquet_files": 1,
+                  "total_bytes": 1922613
+                },
+                "15": {
+                  "parquet_files": 1,
+                  "total_bytes": 100177
+                }
+              }
+            },
+            "2026-01-24": {
+              "location": "hot",
+              "shards": {
+                "00": {
+                  "parquet_files": 3,
+                  "total_bytes": 103629
+                },
+                "01": {
+                  "parquet_files": 2,
+                  "total_bytes": 34808
+                },
+                "02": {
+                  "parquet_files": 3,
+                  "total_bytes": 106747
+                },
+                "03": {
+                  "parquet_files": 3,
+                  "total_bytes": 776227
+                },
+                "04": {
+                  "parquet_files": 2,
+                  "total_bytes": 40529
+                },
+                "05": {
+                  "parquet_files": 2,
+                  "total_bytes": 48522
+                },
+                "06": {
+                  "parquet_files": 3,
+                  "total_bytes": 820606
+                },
+                "07": {
+                  "parquet_files": 2,
+                  "total_bytes": 30352
+                },
+                "08": {
+                  "parquet_files": 3,
+                  "total_bytes": 127439
+                },
+                "09": {
+                  "parquet_files": 3,
+                  "total_bytes": 166704
+                },
+                "10": {
+                  "parquet_files": 3,
+                  "total_bytes": 129745
+                },
+                "11": {
+                  "parquet_files": 3,
+                  "total_bytes": 218483
+                },
+                "12": {
+                  "parquet_files": 3,
+                  "total_bytes": 117929
+                },
+                "13": {
+                  "parquet_files": 3,
+                  "total_bytes": 719983
+                },
+                "14": {
+                  "parquet_files": 3,
+                  "total_bytes": 1497424
+                },
+                "15": {
+                  "parquet_files": 3,
+                  "total_bytes": 95436
+                }
+              }
+            }
+          }
+        }
+      },
+      "hot_path": "/Users/Shared/FarmDashboard/storage/analysis/lake/hot/",
+      "replication": {
+        "backfill_completed_at": "2026-01-24T10:38:58.893611+00:00",
+        "backfill_from_ts": "2025-10-26T10:33:33.460051+00:00",
+        "backfill_to_ts": "2026-01-24T10:33:33.460051+00:00",
+        "computed_through_ts": "2026-01-24T16:52:51.645740+00:00",
+        "last_export_end": "2026-01-24T16:52:51.645740+00:00",
+        "last_export_start": "2026-01-24T16:51:51.369656+00:00",
+        "last_inserted_at": "2026-01-24T16:52:51.645740+00:00",
+        "last_late_window_hours": 48,
+        "last_run_at": "2026-01-24T16:57:51.767275+00:00",
+        "last_run_backlog_seconds": 60,
+        "last_run_duration_ms": 121,
+        "last_run_error": null,
+        "last_run_row_count": 766,
+        "last_run_status": "ok",
+        "schema_version": 1
+      }
+    },
+    "job_type": "lake_inspect_v1",
+    "versions": {
+      "lake_inspector": "v1"
+    }
+  }
+}

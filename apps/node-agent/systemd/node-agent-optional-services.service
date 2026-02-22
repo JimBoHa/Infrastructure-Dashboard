@@ -1,0 +1,6 @@
+[Unit]
+Description=Farm Node optional services apply
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/node-agent-optional-services

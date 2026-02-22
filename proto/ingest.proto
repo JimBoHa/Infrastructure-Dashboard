@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package telemetry.ingest;
+
+message HealthRequest {}
+
+message HealthResponse {
+  // Current size of the ingest queue (pending writes).
+  uint64 queue_depth = 1;
+
+  // Unix epoch milliseconds when the last successful flush completed.
+  uint64 last_flush_unix_ms = 2;
+
+  // Number of rows written in the last flush.
+  uint64 last_batch_len = 3;
+
+  // Rolling average flush duration in milliseconds.
+  double average_flush_ms = 4;
+
+  // Whether the MQTT listener is connected and subscribed.
+  bool mqtt_connected = 5;
+
+  // Number of concurrent flush tasks currently in-flight.
+  uint64 inflight_flushes = 6;
+
+  // Last recorded error message, if any.
+  string last_error = 7;
+
+  // Build identifier exposed by the sidecar (commit/CI tag).
+  string build = 8;
+}
+
+message Metric {
+  string sensor_id = 1;
+  int64 timestamp_ms = 2;
+  double value = 3;
+  int32 quality = 4;
+  string source = 5;
+}
+
+message WriteBatchRequest {
+  repeated Metric metrics = 1;
+  bool force_flush = 2;
+}
+
+message WriteBatchResponse {
+  uint64 accepted = 1;
+  uint64 queued = 2;
+  uint64 flushed = 3;
+}
+
+service Ingestor {
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+  rpc PushMetrics(WriteBatchRequest) returns (WriteBatchResponse);
+  rpc Flush(HealthRequest) returns (HealthResponse);
+}

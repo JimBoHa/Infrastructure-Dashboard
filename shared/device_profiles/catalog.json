@@ -1,0 +1,1384 @@
+{
+  "version": 1,
+  "vendors": [
+    {
+      "id": "schneider_electric",
+      "name": "Schneider Electric",
+      "models": [
+        {
+          "id": "powerlogic_pm8210",
+          "name": "PowerLogic PM8210",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3028,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L2-N",
+              "metric": "voltage_l2_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3030,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L3-N",
+              "metric": "voltage_l3_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3032,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Frequency",
+              "metric": "frequency_hz",
+              "sensor_type": "frequency",
+              "unit": "Hz",
+              "protocol": "modbus_tcp",
+              "register": 3109,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 3053,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 3203,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "powerlogic_pm8240",
+          "name": "PowerLogic PM8240",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3028,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L2-N",
+              "metric": "voltage_l2_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3030,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L3-N",
+              "metric": "voltage_l3_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3032,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Frequency",
+              "metric": "frequency_hz",
+              "sensor_type": "frequency",
+              "unit": "Hz",
+              "protocol": "modbus_tcp",
+              "register": 3109,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 3053,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 3203,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "powerlogic_pm8280",
+          "name": "PowerLogic PM8280",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3028,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L2-N",
+              "metric": "voltage_l2_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3030,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L3-N",
+              "metric": "voltage_l3_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3032,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Frequency",
+              "metric": "frequency_hz",
+              "sensor_type": "frequency",
+              "unit": "Hz",
+              "protocol": "modbus_tcp",
+              "register": 3109,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 3053,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 3203,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "powerlogic_pm82403",
+          "name": "PowerLogic PM82403",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3028,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L2-N",
+              "metric": "voltage_l2_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3030,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L3-N",
+              "metric": "voltage_l3_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3032,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Frequency",
+              "metric": "frequency_hz",
+              "sensor_type": "frequency",
+              "unit": "Hz",
+              "protocol": "modbus_tcp",
+              "register": 3109,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 3053,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 3203,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "powerlogic_pm82404",
+          "name": "PowerLogic PM82404",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3028,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L2-N",
+              "metric": "voltage_l2_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3030,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L3-N",
+              "metric": "voltage_l3_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3032,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Frequency",
+              "metric": "frequency_hz",
+              "sensor_type": "frequency",
+              "unit": "Hz",
+              "protocol": "modbus_tcp",
+              "register": 3109,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 3053,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 3203,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "powerlogic_pm8243",
+          "name": "PowerLogic PM8243",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3028,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L2-N",
+              "metric": "voltage_l2_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3030,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Voltage L3-N",
+              "metric": "voltage_l3_n_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 3032,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Frequency",
+              "metric": "frequency_hz",
+              "sensor_type": "frequency",
+              "unit": "Hz",
+              "protocol": "modbus_tcp",
+              "register": 3109,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 3053,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 3203,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "apc",
+      "name": "APC by Schneider Electric",
+      "models": [
+        {
+          "id": "apc_ups",
+          "name": "APC UPS (PowerNet MIB)",
+          "since_year": 2015,
+          "protocols": [
+            "snmp"
+          ],
+          "points": [
+            {
+              "name": "Battery Capacity",
+              "metric": "battery_capacity_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "snmp",
+              "oid": "1.3.6.1.2.1.33.1.2.4.0"
+            },
+            {
+              "name": "Battery Temperature",
+              "metric": "battery_temperature_c",
+              "sensor_type": "temperature",
+              "unit": "degC",
+              "protocol": "snmp",
+              "oid": "1.3.6.1.2.1.33.1.2.7.0"
+            },
+            {
+              "name": "Output Load",
+              "metric": "output_load_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "snmp",
+              "oid": "1.3.6.1.2.1.33.1.4.4.1.5.1"
+            },
+            {
+              "name": "Output Voltage",
+              "metric": "output_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "snmp",
+              "oid": "1.3.6.1.2.1.33.1.4.4.1.2.1"
+            }
+          ]
+        },
+        {
+          "id": "apc_pdu",
+          "name": "APC PDU (PowerNet MIB)",
+          "since_year": 2015,
+          "protocols": [
+            "snmp"
+          ],
+          "points": [
+            {
+              "name": "PDU Load",
+              "metric": "pdu_load_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "snmp",
+              "oid": "1.3.6.1.4.1.318.1.1.12.1.16.0"
+            },
+            {
+              "name": "Input Voltage",
+              "metric": "pdu_input_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "snmp",
+              "oid": "1.3.6.1.4.1.318.1.1.12.1.2.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "setra",
+      "name": "Setra",
+      "models": [
+        {
+          "id": "setra_power_meter_generic",
+          "name": "Setra Power Meter (Modbus)",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Voltage L-L",
+              "metric": "voltage_ll_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 40001,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Current Total",
+              "metric": "current_total_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 40005,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "metasys",
+      "name": "Johnson Controls Metasys",
+      "models": [
+        {
+          "id": "metasys_server",
+          "name": "Metasys Server",
+          "since_year": 2015,
+          "protocols": [
+            "http_json"
+          ],
+          "points": [
+            {
+              "name": "Metasys Point (value)",
+              "metric": "metasys_point_value",
+              "sensor_type": "generic",
+              "unit": "",
+              "protocol": "http_json",
+              "path": "/api/v2/points/{point_id}",
+              "json_pointer": "/value"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lutron",
+      "name": "Lutron",
+      "models": [
+        {
+          "id": "lutron_lip",
+          "name": "Lutron Integration Protocol (Telnet)",
+          "since_year": 2015,
+          "protocols": [
+            "lutron_lip"
+          ],
+          "points": []
+        },
+        {
+          "id": "lutron_leap",
+          "name": "Lutron LEAP (TLS)",
+          "since_year": 2015,
+          "protocols": [
+            "lutron_leap"
+          ],
+          "points": []
+        }
+      ]
+    },
+    {
+      "id": "megatron",
+      "name": "Megatron",
+      "models": [
+        {
+          "id": "megatron_controller",
+          "name": "Megatron Water Treatment Controller",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "Conductivity",
+              "metric": "conductivity_us_cm",
+              "sensor_type": "conductivity",
+              "unit": "uS/cm",
+              "protocol": "modbus_tcp",
+              "register": 40001,
+              "data_type": "f32_be",
+              "scale": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cps",
+      "name": "Chint Power Systems (CPS)",
+      "models": [
+        {
+          "id": "cps_sunspec",
+          "name": "CPS Inverters (SunSpec Modbus)",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Power",
+              "metric": "ac_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 40083,
+              "data_type": "i16",
+              "scale": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tridium",
+      "name": "Tridium Niagara",
+      "models": [
+        {
+          "id": "tridium_haystack",
+          "name": "Niagara 4 (Haystack API)",
+          "since_year": 2015,
+          "protocols": [
+            "http_json"
+          ],
+          "points": [
+            {
+              "name": "Haystack Point (value)",
+              "metric": "haystack_point_value",
+              "sensor_type": "generic",
+              "unit": "",
+              "protocol": "http_json",
+              "path": "/haystack/read?filter=point",
+              "json_pointer": "/rows/0/val"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "multistack",
+      "name": "Multistack",
+      "models": [
+        {
+          "id": "multistack_hrc",
+          "name": "Multistack HRC (BACnet/IP)",
+          "since_year": 2015,
+          "protocols": [
+            "bacnet_ip"
+          ],
+          "points": [
+            {
+              "name": "Leaving Water Temp",
+              "metric": "leaving_water_temp_c",
+              "sensor_type": "temperature",
+              "unit": "degC",
+              "protocol": "bacnet_ip",
+              "bacnet_object": "analog_input:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "generator_ats",
+      "name": "Generator / ATS",
+      "models": [
+        {
+          "id": "generator_ats_generic",
+          "name": "Generator + ATS (Modbus/BACnet)",
+          "since_year": 2015,
+          "protocols": [
+            "modbus_tcp",
+            "bacnet_ip"
+          ],
+          "points": [
+            {
+              "name": "Generator Status",
+              "metric": "generator_status",
+              "sensor_type": "status",
+              "unit": "",
+              "protocol": "modbus_tcp",
+              "register": 40001,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "victron_energy",
+      "name": "Victron Energy",
+      "models": [
+        {
+          "id": "cerbo_gx",
+          "name": "Cerbo GX",
+          "since_year": 2019,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Consumption L1",
+              "metric": "ac_consumption_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 902,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L2",
+              "metric": "ac_consumption_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 904,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L3",
+              "metric": "ac_consumption_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 906,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L1 Power",
+              "metric": "pv_on_output_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 884,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L2 Power",
+              "metric": "pv_on_output_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 886,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L3 Power",
+              "metric": "pv_on_output_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 888,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery Voltage (System)",
+              "metric": "battery_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 840,
+              "data_type": "u16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Current (System)",
+              "metric": "battery_current_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 841,
+              "data_type": "i16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Power (System)",
+              "metric": "battery_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 842,
+              "data_type": "i16",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery State of Charge (System)",
+              "metric": "battery_soc_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "modbus_tcp",
+              "register": 843,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "cerbo_s_gx",
+          "name": "Cerbo-S GX",
+          "since_year": 2019,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Consumption L1",
+              "metric": "ac_consumption_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 902,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L2",
+              "metric": "ac_consumption_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 904,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L3",
+              "metric": "ac_consumption_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 906,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L1 Power",
+              "metric": "pv_on_output_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 884,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L2 Power",
+              "metric": "pv_on_output_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 886,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L3 Power",
+              "metric": "pv_on_output_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 888,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery Voltage (System)",
+              "metric": "battery_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 840,
+              "data_type": "u16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Current (System)",
+              "metric": "battery_current_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 841,
+              "data_type": "i16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Power (System)",
+              "metric": "battery_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 842,
+              "data_type": "i16",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery State of Charge (System)",
+              "metric": "battery_soc_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "modbus_tcp",
+              "register": 843,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "color_control_gx",
+          "name": "Color Control GX",
+          "since_year": 2016,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Consumption L1",
+              "metric": "ac_consumption_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 902,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L2",
+              "metric": "ac_consumption_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 904,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L3",
+              "metric": "ac_consumption_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 906,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L1 Power",
+              "metric": "pv_on_output_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 884,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L2 Power",
+              "metric": "pv_on_output_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 886,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L3 Power",
+              "metric": "pv_on_output_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 888,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery Voltage (System)",
+              "metric": "battery_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 840,
+              "data_type": "u16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Current (System)",
+              "metric": "battery_current_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 841,
+              "data_type": "i16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Power (System)",
+              "metric": "battery_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 842,
+              "data_type": "i16",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery State of Charge (System)",
+              "metric": "battery_soc_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "modbus_tcp",
+              "register": 843,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "venus_gx",
+          "name": "Venus GX",
+          "since_year": 2016,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Consumption L1",
+              "metric": "ac_consumption_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 902,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L2",
+              "metric": "ac_consumption_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 904,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L3",
+              "metric": "ac_consumption_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 906,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L1 Power",
+              "metric": "pv_on_output_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 884,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L2 Power",
+              "metric": "pv_on_output_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 886,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L3 Power",
+              "metric": "pv_on_output_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 888,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery Voltage (System)",
+              "metric": "battery_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 840,
+              "data_type": "u16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Current (System)",
+              "metric": "battery_current_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 841,
+              "data_type": "i16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Power (System)",
+              "metric": "battery_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 842,
+              "data_type": "i16",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery State of Charge (System)",
+              "metric": "battery_soc_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "modbus_tcp",
+              "register": 843,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "octo_gx",
+          "name": "Octo GX",
+          "since_year": 2021,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Consumption L1",
+              "metric": "ac_consumption_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 902,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L2",
+              "metric": "ac_consumption_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 904,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L3",
+              "metric": "ac_consumption_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 906,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L1 Power",
+              "metric": "pv_on_output_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 884,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L2 Power",
+              "metric": "pv_on_output_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 886,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L3 Power",
+              "metric": "pv_on_output_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 888,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery Voltage (System)",
+              "metric": "battery_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 840,
+              "data_type": "u16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Current (System)",
+              "metric": "battery_current_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 841,
+              "data_type": "i16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Power (System)",
+              "metric": "battery_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 842,
+              "data_type": "i16",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery State of Charge (System)",
+              "metric": "battery_soc_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "modbus_tcp",
+              "register": 843,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        },
+        {
+          "id": "ekrano_gx",
+          "name": "Ekrano GX",
+          "since_year": 2021,
+          "protocols": [
+            "modbus_tcp"
+          ],
+          "points": [
+            {
+              "name": "AC Consumption L1",
+              "metric": "ac_consumption_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 902,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L2",
+              "metric": "ac_consumption_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 904,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "AC Consumption L3",
+              "metric": "ac_consumption_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 906,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L1 Power",
+              "metric": "pv_on_output_l1_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 884,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L2 Power",
+              "metric": "pv_on_output_l2_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 886,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "PV On Output L3 Power",
+              "metric": "pv_on_output_l3_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 888,
+              "data_type": "u32",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery Voltage (System)",
+              "metric": "battery_voltage_v",
+              "sensor_type": "voltage",
+              "unit": "V",
+              "protocol": "modbus_tcp",
+              "register": 840,
+              "data_type": "u16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Current (System)",
+              "metric": "battery_current_a",
+              "sensor_type": "current",
+              "unit": "A",
+              "protocol": "modbus_tcp",
+              "register": 841,
+              "data_type": "i16",
+              "scale": 0.1
+            },
+            {
+              "name": "Battery Power (System)",
+              "metric": "battery_power_w",
+              "sensor_type": "power",
+              "unit": "W",
+              "protocol": "modbus_tcp",
+              "register": 842,
+              "data_type": "i16",
+              "scale": 1.0
+            },
+            {
+              "name": "Battery State of Charge (System)",
+              "metric": "battery_soc_percent",
+              "sensor_type": "percentage",
+              "unit": "%",
+              "protocol": "modbus_tcp",
+              "register": 843,
+              "data_type": "u16",
+              "scale": 1.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

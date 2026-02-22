@@ -1,0 +1,90 @@
+{
+  "node": {
+    "node_id": "pi-node-001",
+    "node_name": "Field Node 001",
+    "hardware_model": "Raspberry Pi 5",
+    "firmware_version": "1.4.2",
+    "mac_eth": "AA:BB:CC:DD:EE:FF",
+    "mac_wifi": null,
+    "adoption_token": "adopt-me",
+    "heartbeat_interval_seconds": 5.0,
+    "telemetry_interval_seconds": 30.0
+  },
+  "wifi_hints": {
+    "ssid": "FarmWiFi",
+    "password": "CHANGEME"
+  },
+  "sensors": [
+    {
+      "sensor_id": "demo-ads",
+      "name": "Demo Voltage",
+      "type": "analog",
+      "channel": 0,
+      "unit": "V",
+      "interval_seconds": 30.0,
+      "rolling_average_seconds": 0.0,
+      "location": null
+    }
+  ],
+  "outputs": [
+    {
+      "output_id": "out-relay-1",
+      "name": "Irrigation Pump",
+      "type": "relay",
+      "channel": 0,
+      "default_state": "off",
+      "command_topic": null,
+      "supported_states": ["off", "on"]
+    }
+  ],
+  "schedules": [
+    {
+      "schedule_id": "sched-demo-morning",
+      "name": "Morning Irrigation",
+      "rrule": "FREQ=DAILY;BYHOUR=5;BYMINUTE=30;BYSECOND=0",
+      "blocks": [{ "day": "Daily", "start": "05:30", "end": "06:15" }],
+      "conditions": [{ "type": "soil_moisture_below", "threshold": "35" }],
+      "actions": [{ "type": "output", "target": "out-relay-1", "state": "on" }]
+    }
+  ],
+  "mesh": {
+    "enabled": false,
+    "driver": "zigpy",
+    "protocol": "zigbee",
+    "channel": 15,
+    "pan_id": "0x1A2B",
+    "extended_pan_id": "00:12:4B:00:01:A2:B3:C4",
+    "network_key": "00112233445566778899AABBCCDDEEFF",
+    "tc_link_key": null,
+    "serial_device": null,
+    "baudrate": 115200,
+    "polling_interval_seconds": 5.0,
+    "diagnostics_interval_seconds": 60.0,
+    "max_backfill_seconds": 180.0
+  },
+  "mesh_summary": {
+    "health": "unknown",
+    "node_count": 0,
+    "coordinator_ieee": "AA:BB:CC:DD:EE:FF",
+    "average_link_quality": null,
+    "last_rssi": null,
+    "last_battery_percent": null,
+    "last_parent": null,
+    "last_updated": null,
+    "health_details": {}
+  },
+  "renogy_bt2": {
+    "enabled": false,
+    "address": null,
+    "device_name": null,
+    "unit_id": 1,
+    "poll_interval_seconds": 10.0,
+    "request_timeout_seconds": 4.0,
+    "connect_timeout_seconds": 10.0,
+    "adapter": null,
+    "service_uuid": null,
+    "write_uuid": null,
+    "notify_uuid": null
+  },
+  "saved_at": null
+}

@@ -1,0 +1,108 @@
+{
+  "components": {
+    "schemas": {
+      "TelemetryPayload": {
+        "type": "object",
+        "required": ["sensor_id", "value"],
+        "properties": {
+          "sensor_id": {"type": "string"},
+          "timestamp": {"type": "string", "format": "date-time"},
+          "value": {"type": "number"},
+          "quality": {"type": "integer", "default": 0},
+          "unit": {"type": "string"},
+          "interval_seconds": {"type": "number"},
+          "rolling_average_seconds": {"type": "number"},
+          "request_id": {"type": "string"}
+        }
+      },
+      "NodeStatusPayload": {
+        "type": "object",
+        "required": [
+          "status",
+          "node_id",
+          "ts",
+          "uptime_seconds",
+          "cpu_percent",
+          "storage_used_bytes",
+          "memory_used_bytes",
+          "cpu_percent_per_core"
+        ],
+        "properties": {
+          "status": {"type": "string"},
+          "node_id": {"type": "string"},
+          "name": {"type": "string"},
+          "ts": {"type": "string", "format": "date-time"},
+          "uptime_seconds": {"type": "integer"},
+          "uptime_percent_24h": {"type": "number"},
+          "cpu_percent": {"type": "number"},
+          "cpu_percent_per_core": {"type": "array", "items": {"type": "number"}},
+          "memory_percent": {"type": "number"},
+          "memory_used_bytes": {"type": "integer"},
+          "storage_used_bytes": {"type": "integer"},
+          "heartbeats": {"type": "number"},
+          "network_latency_ms": {"type": "number"},
+          "network_jitter_ms": {"type": "number"},
+          "mesh": {"type": "object", "additionalProperties": true},
+          "outputs": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+          "request_id": {"type": "string"}
+        }
+      },
+      "PreviewEventOverlayParamsV1": {
+        "type": "object",
+        "properties": {
+          "z_threshold": {"type": "number", "format": "double", "nullable": true},
+          "min_separation_buckets": {"type": "integer", "format": "int64", "nullable": true},
+          "gap_max_buckets": {"type": "integer", "format": "int64", "nullable": true},
+          "polarity": {
+            "allOf": [{"$ref": "#/components/schemas/EventPolarityV1"}],
+            "nullable": true
+          },
+          "max_events": {"type": "integer", "format": "int32", "minimum": 0, "nullable": true},
+          "tolerance_seconds": {"type": "integer", "format": "int64", "nullable": true}
+        }
+      },
+      "EventPolarityV1": {
+        "type": "string",
+        "enum": ["both", "up", "down"]
+      },
+      "PreviewEventOverlaysV1": {
+        "type": "object",
+        "required": [
+          "focus_event_ts_ms",
+          "candidate_event_ts_ms",
+          "matched_focus_event_ts_ms",
+          "matched_candidate_event_ts_ms"
+        ],
+        "properties": {
+          "focus_event_ts_ms": {
+            "type": "array",
+            "items": {"type": "integer", "format": "int64"},
+            "default": []
+          },
+          "candidate_event_ts_ms": {
+            "type": "array",
+            "items": {"type": "integer", "format": "int64"},
+            "default": []
+          },
+          "matched_focus_event_ts_ms": {
+            "type": "array",
+            "items": {"type": "integer", "format": "int64"},
+            "default": []
+          },
+          "matched_candidate_event_ts_ms": {
+            "type": "array",
+            "items": {"type": "integer", "format": "int64"},
+            "default": []
+          },
+          "tolerance_seconds": {"type": "integer", "format": "int64", "nullable": true}
+        }
+      },
+      "crate.routes.alarms.AlarmEventResponse": {
+        "$ref": "#/components/schemas/AlarmEventResponse"
+      },
+      "crate.services.alarm_engine.PreviewTargetResult": {
+        "$ref": "#/components/schemas/PreviewTargetResult"
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "renogy_bt2": {
+    "default_interval_seconds": 30,
+    "sensors": [
+      { "metric": "pv_power_w", "name": "PV Power", "core_type": "power", "unit": "W" },
+      { "metric": "pv_voltage_v", "name": "PV Voltage", "core_type": "voltage", "unit": "V" },
+      { "metric": "pv_current_a", "name": "PV Current", "core_type": "current", "unit": "A" },
+      { "metric": "pv_energy_today_kwh", "name": "PV Energy (today)", "core_type": "energy", "unit": "kWh" },
+      { "metric": "pv_energy_total_kwh", "name": "PV Energy (total)", "core_type": "energy", "unit": "kWh" },
+      { "metric": "battery_soc_percent", "name": "Battery SOC", "core_type": "percentage", "unit": "%" },
+      { "metric": "battery_voltage_v", "name": "Battery Voltage", "core_type": "voltage", "unit": "V" },
+      { "metric": "battery_current_a", "name": "Battery Current", "core_type": "current", "unit": "A" },
+      { "metric": "battery_temp_c", "name": "Battery Temp", "core_type": "temperature", "unit": "degC" },
+      { "metric": "controller_temp_c", "name": "Controller Temp", "core_type": "temperature", "unit": "degC" },
+      { "metric": "load_power_w", "name": "Load Power", "core_type": "power", "unit": "W" },
+      { "metric": "load_voltage_v", "name": "Load Voltage", "core_type": "voltage", "unit": "V" },
+      { "metric": "load_current_a", "name": "Load Current", "core_type": "current", "unit": "A" },
+      { "metric": "runtime_hours", "name": "Runtime Estimate", "core_type": "runtime", "unit": "hr" }
+    ]
+  },
+  "ws_2902": {
+    "default_interval_seconds": 30,
+    "sensors": [
+      { "sensor_type": "temperature", "name": "Weather temperature", "unit": "°C" },
+      { "sensor_type": "humidity", "name": "Humidity", "unit": "%" },
+      { "sensor_type": "wind_speed", "name": "Wind speed", "unit": "m/s" },
+      { "sensor_type": "wind_gust", "name": "Wind gust", "unit": "m/s" },
+      { "sensor_type": "wind_direction", "name": "Wind direction", "unit": "°" },
+      { "sensor_type": "rain", "name": "Rain (daily)", "unit": "mm" },
+      { "sensor_type": "rain_rate", "name": "Rain rate", "unit": "mm/h" },
+      { "sensor_type": "uv", "name": "UV index", "unit": "" },
+      { "sensor_type": "solar_radiation", "name": "Solar radiation", "unit": "W/m²" },
+      { "sensor_type": "pressure_relative", "name": "Barometric pressure (relative)", "unit": "kPa" },
+      { "sensor_type": "pressure_absolute", "name": "Barometric pressure (absolute)", "unit": "kPa" }
+    ]
+  }
+}

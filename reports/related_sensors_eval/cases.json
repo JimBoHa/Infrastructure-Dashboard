@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "derived_power_inputs_v1",
+      "focus_sensor_id": "af370b03a396ea19681af459",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "5e7be23ca4894114a8c7ca33",
+        "37c26eb6bb138091994f28dd"
+      ],
+      "tags": ["derived", "power", "renogy_bt2", "ground_truth:config_dependency"]
+    },
+    {
+      "id": "derived_reservoir_depth_temp_comp_v1",
+      "focus_sensor_id": "adab2ed19bb1b9dfe189fa81",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "ea5745e00cb0227e046f6b88",
+        "6b1edcc4b4d2ac30cac88ad4"
+      ],
+      "tags": ["derived", "water_level", "temperature", "temp_compensation", "ground_truth:config_dependency"]
+    },
+    {
+      "id": "derived_current_temp_comp_v1",
+      "focus_sensor_id": "a7564f816c79c5535ea35967",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "37c26eb6bb138091994f28dd",
+        "6b1edcc4b4d2ac30cac88ad4"
+      ],
+      "tags": ["derived", "current", "temperature", "temp_compensation", "ground_truth:config_dependency"]
+    },
+    {
+      "id": "derived_reservoir_depth_temp_comp_v2_dependency",
+      "focus_sensor_id": "86c805faf8f1b6d52f3a2fcb",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "adab2ed19bb1b9dfe189fa81",
+        "48cb1ea6e594d19d5060b5f2"
+      ],
+      "tags": ["derived", "water_level", "temperature", "temp_compensation", "ground_truth:config_dependency"]
+    },
+    {
+      "id": "derived_of_derived_passthrough",
+      "focus_sensor_id": "d12291c2fa44261a4a310a4b",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": ["af370b03a396ea19681af459"],
+      "tags": ["derived", "power", "ground_truth:config_dependency"]
+    },
+    {
+      "id": "pv_power_voltage_current",
+      "focus_sensor_id": "0d7965b01ac624c96c31b324",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "4b1e3dde7a4297de78d51a50",
+        "82b00b9d1e3b4cb930881cf2"
+      ],
+      "tags": ["power", "voltage", "current", "renogy_bt2", "physical_relation:pv"]
+    },
+    {
+      "id": "battery_voltage_current_soc",
+      "focus_sensor_id": "5e7be23ca4894114a8c7ca33",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "5700bdc1793259b736fabc69",
+        "e829b957584dd849e2586979"
+      ],
+      "tags": ["voltage", "current", "percentage", "renogy_bt2", "physical_relation:battery"]
+    },
+    {
+      "id": "load_power_voltage_current",
+      "focus_sensor_id": "2e0d384be55ce6b4c2e2e8a7",
+      "start": "2026-02-11T13:30:00Z",
+      "end": "2026-02-11T16:30:00Z",
+      "expected_related_sensor_ids": [
+        "8e3d82ed05eb47da0b4d7bb4",
+        "ca845b715f0f44d85264a438"
+      ],
+      "tags": ["power", "voltage", "current", "renogy_bt2", "physical_relation:load"]
+    },
+    {
+      "id": "pressure_incident_network_health",
+      "focus_sensor_id": "91af9586787db88cbe609222",
+      "start": "2026-02-11T04:12:00Z",
+      "end": "2026-02-11T05:12:00Z",
+      "expected_related_sensor_ids": [
+        "f422086f07621b4d075f010c",
+        "25086b7002f7a662ef81fb7f",
+        "62a21dba626ee6858257b953"
+      ],
+      "tags": ["pressure", "ping", "latency", "incident_like", "node_health"]
+    },
+    {
+      "id": "cpu_aggregate_vs_cores",
+      "focus_sensor_id": "d0bc967860ae269107ab90aa",
+      "start": "2026-02-11T04:00:00Z",
+      "end": "2026-02-11T06:00:00Z",
+      "expected_related_sensor_ids": [
+        "812bed3cf929199a527ff9d4",
+        "af1c59b43e1fab256883951a",
+        "3772dc39467b5a47a55ac604"
+      ],
+      "tags": ["cpu_percent", "node_health", "same_node"]
+    }
+  ]
+}
+

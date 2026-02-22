@@ -1,0 +1,360 @@
+Below is a “data-scientist friendly” explanation of how **Related Sensors (Unified v2)** works today: what it’s trying to detect, exactly what math it runs, what the scores mean (and don’t mean), and what knobs change the results.
+
+This is based on the current backend implementation in:
+- `apps/core-server-rs/src/services/analysis/jobs/related_sensors_unified_v2.rs`
+- `apps/core-server-rs/src/services/analysis/jobs/event_match_v1.rs`
+- `apps/core-server-rs/src/services/analysis/jobs/cooccurrence_v1.rs`
+- `apps/core-server-rs/src/services/analysis/jobs/event_utils.rs`
+- `apps/core-server-rs/src/services/analysis/tsse/robust.rs`
+
+---
+
+## 1) What “Related Sensors” is actually trying to do
+
+Given:
+- a **focus sensor** (the one you care about),
+- a **time window** `[start, end]`,
+- a **candidate pool** of other sensors (either explicitly provided or auto-selected via filters),
+
+…the system ranks other sensors as “related” if they show **similar *change events*** in that window.
+
+Importantly:
+- It does **not** primarily look at raw levels (e.g., “temperature is 70°F”).
+- It looks at **changes** over time (bucket-to-bucket deltas), then detects **unusually large changes** (“events/anomalies”), and then asks:
+  1) Do the focus sensor’s events line up with the candidate’s events (possibly with a time lag)?
+  2) Do they tend to have events in the same time buckets (co-occurrence), even if multiple sensors spike together?
+
+The **Unified v2** ranking blends two evidence signals:
+- **Event alignment evidence** (an F1-style overlap score over detected events, with best lag search)
+- **Co-occurrence evidence** (shared anomaly buckets; stronger anomalies contribute more)
+
+---
+
+## 2) Time bucketing / resampling (common foundation)
+
+All analysis is done on a **bucketed** time grid with bucket size `interval_seconds` (default ~60s unless adjusted).
+
+If the time window is long, the job automatically increases the bucket size so it doesn’t exceed an internal `max_buckets` ceiling. Conceptually:
+
+- Let `H = end - start` (seconds)
+- Let desired bucket size be `interval_seconds`
+- Expected buckets `B ≈ ceil(H / interval_seconds)`
+- If `B` is too large, it increases `interval_seconds` so `B <= max_buckets`
+
+This means: **results can change slightly** if the window is long enough that it forces a coarser bucket size (events can merge, event counts change, etc.).
+
+---
+
+## 3) Step A — Convert each sensor into “change events” (core math)
+
+For each sensor, we start from its bucketed values:
+
+- Bucket times: `t1, t2, ..., tN`
+- Bucket values: `x1, x2, ..., xN`
+
+### 3.1 Compute bucket-to-bucket deltas
+
+For each step `i = 2..N`:
+
+Δᵢ = xᵢ − xᵢ₋₁
+
+We do event detection on these deltas (so “a sudden jump” is an event).
+
+### 3.2 Robust center + robust scale of deltas
+
+Let `Δ` be the set of delta values for that sensor over the window.
+
+**Center** is the **median**:
+
+c = median(Δ)
+
+**Scale** is a robust “std-like” estimate:
+
+- Compute MAD:
+
+MAD = median(|Δ − c|)
+
+- If MAD is non-degenerate, scale is:
+
+s = 1.4826 × MAD
+
+That `1.4826` constant makes MAD comparable to standard deviation under a Normal assumption.
+
+- If MAD is ~0 (degenerate), it falls back to IQR:
+
+IQR = Q₀.₇₅(Δ) − Q₀.₂₅(Δ)
+s = IQR / 1.349
+
+(And if that’s also degenerate, it falls back to `s = 1.0`.)
+
+### 3.3 Robust z-score per delta (event “severity”)
+
+For each delta:
+
+zᵢ = (Δᵢ − c) / s
+
+An “event” occurs when:
+
+|zᵢ| ≥ z_threshold
+
+Defaults:
+- `z_threshold` defaults to ~`3.0` (or higher in “quick suggest” mode).
+
+Also, polarity can filter events:
+- `both`: allow positive and negative jumps
+- `up`: keep only `zᵢ >= 0`
+- `down`: keep only `zᵢ <= 0`
+
+### 3.4 De-dup events that are too close
+
+If two events are within `min_separation_buckets * interval_seconds`, only the one with larger `|z|` is kept. (This prevents “one real change” from producing a cluster of near-duplicate event points.)
+
+### 3.5 Cap event count if needed
+
+If too many events are found, it keeps only the top `max_events` by `|z|`.
+
+**Output of Step A (per sensor):**
+A list of event timestamps (bucket times) with signed `z` and direction.
+
+---
+
+## 4) Evidence Signal #1 — Event alignment score (with best lag)
+
+This is implemented by `event_match_v1`.
+
+### 4.1 Event sets
+
+For focus sensor `F`:
+- event times T_F = {t¹_F, ..., tⁿ_F}
+
+For candidate sensor `C`:
+- event times T_C = {t¹_C, ..., tⁿ_C}
+
+Internally, it treats these like sets of timestamps.
+
+### 4.2 Overlap at a given lag
+
+Define lag in **buckets**: `L` (an integer), so lag in seconds is:
+
+lag_sec = L × interval_seconds
+
+Overlap count at lag `L`:
+
+overlap(L) = |{ t ∈ T_F : (t + lag_sec) ∈ T_C }|
+
+So: it shifts the focus events forward/backward and counts exact timestamp matches.
+
+### 4.3 F1-style score at that lag
+
+It uses an F1-like symmetric overlap score:
+
+F1(L) = 2 × overlap(L) / (n_F + n_C)
+
+Edge cases:
+- If one side has 0 events, F1 becomes 0 (or None if both are 0).
+
+### 4.4 Best lag search
+
+It searches all integer lags:
+
+L ∈ [−L_max, +L_max]
+
+where `L_max = max_lag_buckets`.
+
+It picks the lag with maximum F1; tie-breakers favor higher overlap.
+
+**Events evidence output per candidate:**
+- `events_score` = best-lag F1
+- `events_overlap` = overlap at best lag
+- `best_lag_sec` = best lag in seconds
+
+### 4.5 “Episodes” (for human inspection in the UI)
+
+After choosing the best lag, it groups matched event points into “episodes”:
+- Take the subset of focus events that had a match in the candidate (after lag shift)
+- Sort them by time
+- Split into groups where the gap between consecutive matched events exceeds `episode_gap_buckets * interval_seconds`
+
+For each episode, it reports:
+- time window (start/end)
+- `num_points` matched
+- `score_mean` = average `|z|` of focus events in episode
+- `score_peak` = max `|z|`
+- `coverage` = `num_points / total_focus_events`
+
+This episode structure is mostly for *explainability*: “here are the periods where these sensors’ events aligned.”
+
+---
+
+## 5) Evidence Signal #2 — Co-occurrence score (shared anomaly buckets)
+
+This comes from `cooccurrence_v1`, then gets aggregated for unified ranking.
+
+### 5.1 Bucket indexing with tolerance
+
+Each event at time `t` maps to a bucket index:
+
+b = floor(t_epoch_sec / interval_seconds)
+
+Then the algorithm marks that sensor as “present” not only in bucket `b`, but also in:
+
+b + o  for o ∈ [−τ, +τ]
+
+where `τ = tolerance_buckets`.
+
+This tolerance says: “If two sensors spike within ±τ buckets, treat them as co-occurring.”
+
+### 5.2 Identify “group anomaly buckets”
+
+For each bucket index, it collects the sensors that have an event landing in that (tolerance-expanded) bucket.
+
+It keeps only buckets where:
+- `group_size >= min_sensors`
+- and (if a focus sensor is specified) the group includes the focus sensor
+
+### 5.3 Bucket severity score (used to pick the “top buckets”)
+
+For a candidate bucket with sensors `S` in it, it computes:
+
+- Severity sum:
+
+severity_sum = Σ_{s ∈ S} |z_s|
+
+- Pair weight (number of sensor pairs in the group):
+
+pair_weight = C(|S|, 2) = |S|(|S|−1)/2
+
+- Bucket score:
+
+bucket_score = pair_weight × severity_sum
+
+Intuition:
+- More sensors spiking together → higher `pair_weight`
+- Stronger spikes → higher `severity_sum`
+- Buckets with big multi-sensor spike events float to the top.
+
+Then it selects the top buckets, but **suppresses** nearby buckets within ±`tolerance_buckets` to avoid picking many buckets from one continuous episode.
+
+### 5.4 Aggregate co-occurrence per sensor (focus-weighted)
+
+Unified v2 then aggregates co-occurrence evidence into a **per-candidate-sensor score**, but only using buckets that include the focus sensor.
+
+For each selected bucket that contains focus sensor `F` with event z-score `z_F`, and for each other sensor `C` in that bucket with z-score `z_C`, it adds:
+
+coocc_score(C) += |z_F| × |z_C|
+
+And increments a count:
+
+coocc_count(C) += 1
+
+It also records the top bucket timestamps (for UI context).
+
+**Co-occurrence evidence output per candidate:**
+- `cooccurrence_score` = sum of |z_F|×|z_C| over shared top buckets
+- `cooccurrence_count` = number of shared buckets contributing
+
+---
+
+## 6) Unified v2 final ranking — normalization + weighted blend
+
+At this point, each candidate sensor may have:
+- `events_score` (best-lag F1; range 0..1-ish)
+- `cooccurrence_score` (unbounded positive; depends on z magnitudes and count)
+
+Because these are on different scales, unified v2 does **max normalization within the run**:
+
+Let:
+- E_C = events_score for candidate `C`
+- E_max = max_C E_C (over candidates with finite positive scores)
+- K_C = cooccurrence_score for candidate `C`
+- K_max = max_C K_C
+
+Then:
+
+E_norm(C) = clamp(E_C / E_max, 0, 1)
+K_norm(C) = clamp(K_C / K_max, 0, 1)
+
+Default weights are:
+- `events = 0.6`
+- `cooccurrence = 0.4`
+
+If custom weights are provided, they are re-scaled to sum to 1.
+
+Final blended score:
+
+blended(C) = w_E × E_norm(C) + w_K × K_norm(C)
+
+Candidates with `blended <= 0` are dropped.
+
+Then candidates are sorted primarily by `blended_score` descending (with tie-breakers using confidence tier, evidence counts, etc.).
+
+---
+
+## 7) Confidence tier (rule-based, not statistical)
+
+Unified v2 assigns a coarse confidence tier:
+
+- **High** if:
+  - `blended_score >= 0.75`
+  - and (`events_overlap >= 2` OR `cooccurrence_count >= 2`)
+
+- **Medium** if:
+  - `blended_score >= 0.35`
+  - and (`events_overlap >= 1` OR `cooccurrence_count >= 1`)
+
+- **Low** otherwise
+
+This is a heuristic “strength + minimum evidence” gate, not a p-value / hypothesis test.
+
+---
+
+## 8) Candidate pool selection and filters (why results change)
+
+If the UI/user does not provide an explicit candidate list, the backend will pull sensors from the DB and then filter down using options like:
+
+- `same_node_only` (only sensors on same device/node)
+- `same_unit_only` (must have same engineering unit)
+- `same_type_only` (must have same sensor type)
+- `interval_seconds` (only sensors with a specific configured collection interval)
+- `exclude_sensor_ids`
+- `is_derived` / `is_public_provider` flags based on sensor metadata
+
+It then truncates to `candidate_limit`.
+
+This matters because:
+- The **max-normalization** step (divide by `max_event_score` / `max_coocc_score`) makes blended scores **relative to the pool**.
+- Changing the pool can change the max values and therefore everyone’s normalized scores.
+
+So: *scores are not directly comparable across runs unless the candidate pool is controlled.*
+
+---
+
+## 9) What to ask the data scientist to review (useful critique angles)
+
+If you want the review to be actionable, here are good questions for them:
+
+1) **Event definition sanity**
+   - Using delta-based robust z-score: does it match “what humans think is an anomaly” for the sensor types you care about?
+   - Are there sensors where level anomalies matter more than change anomalies?
+
+2) **F1 overlap as an alignment metric**
+   - Is 2×overlap/(n_F+n_C) the right scoring objective?
+   - Does it overweight sensors with very low event rates or very high event rates?
+
+3) **Lag search + tolerance design**
+   - Event alignment uses *exact timestamp matches* after lag shift.
+   - Co-occurrence uses ±tolerance buckets.
+   - Do these mismatch in a way that could produce confusing rankings?
+
+4) **Co-occurrence aggregation**
+   - Unified uses Σ |z_F|×|z_C| across top buckets.
+   - Should it be normalized by count, or discounted for very large groups, or robustified?
+
+5) **Max-normalization effects**
+   - Since it uses run-wise maxima, the blended score is rank-friendly but not stable.
+   - Is that acceptable UX? If not, suggest alternatives (e.g., percentile normalization, logistic mapping, per-sensor calibration).
+
+6) **Confidence tier heuristics**
+   - The thresholds (`0.75`, `0.35`, overlaps >= 1/2) are heuristic.
+   - Would they recommend a different mapping from evidence to tier?
+

@@ -1,0 +1,9 @@
+[Unit]
+Description=Rotate Farm Node Agent logs
+After=systemd-journald.service
+ConditionVirtualization=!container
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/node-agent.env
+ExecStart=/usr/local/bin/node-agent-logrotate

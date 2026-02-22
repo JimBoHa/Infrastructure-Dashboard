@@ -1,0 +1,22 @@
+{
+  "id": null,
+  "uid": "observability-quickstart",
+  "title": "Observability Quickstart",
+  "tags": ["observability", "tempo"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "text",
+      "title": "Getting Started",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 7 },
+      "options": {
+        "mode": "markdown",
+        "content": "Use Explore with the Tempo datasource to search traces for `service.name=core-server` or `service.name=node-agent`.\\n\\nRecommended TraceQL examples:\\n- `{ service.name = \\\"core-server\\\" }`\\n- `{ service.name = \\\"node-agent\\\" }`\\n\\nIf no traces appear, confirm the collector is running and `CORE_OTEL_ENABLED` / `NODE_OTEL_ENABLED` are set."
+      }
+    }
+  ],
+  "time": { "from": "now-6h", "to": "now" }
+}

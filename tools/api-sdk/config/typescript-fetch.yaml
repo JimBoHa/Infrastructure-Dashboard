@@ -1,0 +1,6 @@
+supportsES6: true
+typescriptThreePlus: true
+modelPropertyNaming: original
+enumPropertyNaming: original
+useSingleRequestParameter: true
+dateLibrary: string

@@ -1,0 +1,14 @@
+pub mod bucket_reader;
+pub mod embeddings_refresh;
+pub mod jobs;
+pub mod lake;
+pub mod lake_inspector;
+pub mod local_qdrant;
+pub mod parquet_duckdb;
+pub mod profiling;
+pub mod qdrant;
+pub mod replication;
+pub mod signal_semantics;
+pub mod security;
+pub mod stats;
+pub mod tsse;

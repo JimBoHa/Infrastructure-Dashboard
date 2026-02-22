@@ -1,0 +1,59 @@
+[package]
+name = "core-server-rs"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+clap = { version = "4", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+csv = "1"
+futures = "0.3"
+pbkdf2 = "0.12"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+rumqttc = "0.25.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+subtle = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+tower_governor = { version = "0.8", default-features = false, features = ["axum"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }
+uuid = { version = "1", features = ["serde", "v4", "v5"] }
+base64 = "0.22"
+tokio-util = "0.7"
+rrule = "0.14"
+url = "2"
+ssh2 = "0.9"
+tempfile = "3"
+rusqlite = { version = "0.32", features = ["bundled"] }
+aws-config = "1"
+aws-sdk-cognitoidentityprovider = "1"
+aws-cognito-srp = "0.2"
+aws-types = "1"
+evalexpr = "11"
+iana-time-zone = "0.1"
+duckdb = { version = "1.4.3", features = ["parquet", "chrono"] }
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
+libc = "0.2"
+pprof = { version = "0.13", features = ["flamegraph"] }
+sysinfo = "0.33"
+statrs = "0.16"
+tokio-modbus = "0.9"
+snmp = "0.2.2"
+tokio-rustls = "0.26"
+rustls-pemfile = "2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mdns-sd = "0.17"
+
+[dev-dependencies]
+chrono-tz = "0.10"
+tower = "0.5"

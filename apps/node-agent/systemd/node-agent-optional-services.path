@@ -1,0 +1,11 @@
+[Unit]
+Description=Farm Node optional service watcher
+
+[Path]
+PathExists=/opt/node-agent/storage/node_config.json
+PathChanged=/opt/node-agent/storage/node_config.json
+PathModified=/opt/node-agent/storage/node_config.json
+Unit=node-agent-optional-services.service
+
+[Install]
+WantedBy=multi-user.target
