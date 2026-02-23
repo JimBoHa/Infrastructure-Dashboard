@@ -3,6 +3,7 @@ use base64::engine::general_purpose::STANDARD_NO_PAD;
 use base64::Engine;
 use pbkdf2::pbkdf2_hmac;
 use postgres::{Client, NoTls};
+use postgres::types::Json;
 use rand::rngs::OsRng;
 use rand::RngCore;
 use sha2::Sha256;
@@ -59,8 +60,8 @@ pub(crate) fn ensure_bootstrap_admin(
 
     let password = generate_temp_password();
     let password_hash = hash_password(&password)?;
-    let capabilities_json = serde_json::to_string(BOOTSTRAP_ADMIN_CAPABILITIES)
-        .context("Failed to encode capabilities")?;
+    let capabilities_json =
+        serde_json::json!(BOOTSTRAP_ADMIN_CAPABILITIES);
 
     client
         .execute(
@@ -72,7 +73,7 @@ pub(crate) fn ensure_bootstrap_admin(
                 &BOOTSTRAP_ADMIN_NAME,
                 &BOOTSTRAP_ADMIN_EMAIL,
                 &BOOTSTRAP_ADMIN_ROLE,
-                &capabilities_json,
+                &Json(&capabilities_json),
                 &password_hash,
             ],
         )

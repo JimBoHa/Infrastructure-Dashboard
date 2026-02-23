@@ -1130,6 +1130,11 @@ def main() -> int:
     backup_root = resolve_backup_root(config)
     backup_root.mkdir(parents=True, exist_ok=True)
     env["CORE_BACKUP_STORAGE_PATH"] = str(backup_root)
+    if tier_a_mode:
+        # Tier-A uses installed services; avoid writing to protected shared paths.
+        e2e_backup_root = artifacts_dir / "backups"
+        e2e_backup_root.mkdir(parents=True, exist_ok=True)
+        env["FARM_E2E_BACKUP_ROOT"] = str(e2e_backup_root)
     if config.get("mqtt_username"):
         env["CORE_MQTT_USERNAME"] = str(config["mqtt_username"])
     if config.get("mqtt_password"):
