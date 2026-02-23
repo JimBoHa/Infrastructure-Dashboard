@@ -435,7 +435,9 @@ fn build_dashboard(artifacts_root: &Path) -> Result<()> {
         }
     }
 
-    let npm_cache = work_dir.join(".npm-cache");
+    let npm_cache = std::env::var("NPM_CONFIG_CACHE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| work_dir.join(".npm-cache"));
     fs::create_dir_all(&npm_cache)?;
 
     let mut npm_install = Command::new("npm");
