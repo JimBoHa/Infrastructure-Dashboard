@@ -1818,6 +1818,13 @@
         ],
         "type": "object"
       },
+      "BatteryChemistry": {
+        "enum": [
+          "lifepo4",
+          "lead_acid"
+        ],
+        "type": "string"
+      },
       "BatteryConfigRequest": {
         "properties": {
           "battery_model": {
@@ -1919,6 +1926,30 @@
         "required": [
           "acknowledged"
         ],
+        "type": "object"
+      },
+      "CapacityEstimationConfig": {
+        "properties": {
+          "clamp_max_ah": {
+            "format": "double",
+            "type": "number"
+          },
+          "clamp_min_ah": {
+            "format": "double",
+            "type": "number"
+          },
+          "ema_alpha": {
+            "format": "double",
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "min_soc_span_percent": {
+            "format": "double",
+            "type": "number"
+          }
+        },
         "type": "object"
       },
       "ConnectionResponse": {
@@ -2225,6 +2256,14 @@
           "chart_state"
         ],
         "type": "object"
+      },
+      "CurrentSignMode": {
+        "enum": [
+          "auto",
+          "positive_is_charging",
+          "positive_is_discharging"
+        ],
+        "type": "string"
       },
       "CurrentWeatherMetric": {
         "properties": {
@@ -2559,6 +2598,141 @@
         ],
         "type": "object"
       },
+      "DeviceCatalog": {
+        "properties": {
+          "vendors": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceVendor"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "vendors"
+        ],
+        "type": "object"
+      },
+      "DeviceModel": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/DevicePoint"
+            },
+            "type": "array"
+          },
+          "protocols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "since_year": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "protocols",
+          "points"
+        ],
+        "type": "object"
+      },
+      "DevicePoint": {
+        "properties": {
+          "bacnet_object": {
+            "nullable": true,
+            "type": "string"
+          },
+          "data_type": {
+            "nullable": true,
+            "type": "string"
+          },
+          "json_pointer": {
+            "nullable": true,
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "oid": {
+            "nullable": true,
+            "type": "string"
+          },
+          "path": {
+            "nullable": true,
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "register": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "scale": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "sensor_type": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "metric",
+          "sensor_type",
+          "unit",
+          "protocol"
+        ],
+        "type": "object"
+      },
+      "DeviceVendor": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceModel"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "models"
+        ],
+        "type": "object"
+      },
       "DisplayTile": {
         "properties": {
           "sensor_id": {
@@ -2863,6 +3037,154 @@
           "token_present",
           "site_ids",
           "devices"
+        ],
+        "type": "object"
+      },
+      "EventPolarityV1": {
+        "enum": [
+          "both",
+          "up",
+          "down"
+        ],
+        "type": "string"
+      },
+      "ExternalDeviceCatalogResponse": {
+        "properties": {
+          "vendors": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceVendor"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "vendors"
+        ],
+        "type": "object"
+      },
+      "ExternalDeviceCreateRequest": {
+        "properties": {
+          "external_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "host": {
+            "nullable": true,
+            "type": "string"
+          },
+          "http_base_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "http_password": {
+            "nullable": true,
+            "type": "string"
+          },
+          "http_username": {
+            "nullable": true,
+            "type": "string"
+          },
+          "leap_ca_pem": {
+            "nullable": true,
+            "type": "string"
+          },
+          "leap_client_cert_pem": {
+            "nullable": true,
+            "type": "string"
+          },
+          "leap_client_key_pem": {
+            "nullable": true,
+            "type": "string"
+          },
+          "leap_verify_ca": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "lip_integration_report": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lip_password": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lip_username": {
+            "nullable": true,
+            "type": "string"
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "poll_interval_seconds": {
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "port": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "snmp_community": {
+            "nullable": true,
+            "type": "string"
+          },
+          "unit_id": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "vendor_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "vendor_id",
+          "model_id",
+          "protocol"
+        ],
+        "type": "object"
+      },
+      "ExternalDeviceSummary": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "external_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "external_provider": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "node_id",
+          "name",
+          "config"
         ],
         "type": "object"
       },
@@ -4425,6 +4747,81 @@
         ],
         "type": "object"
       },
+      "NodeStatusPayload": {
+        "properties": {
+          "cpu_percent": {
+            "type": "number"
+          },
+          "cpu_percent_per_core": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "heartbeats": {
+            "type": "number"
+          },
+          "memory_percent": {
+            "type": "number"
+          },
+          "memory_used_bytes": {
+            "type": "integer"
+          },
+          "mesh": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network_jitter_ms": {
+            "type": "number"
+          },
+          "network_latency_ms": {
+            "type": "number"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "outputs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "storage_used_bytes": {
+            "type": "integer"
+          },
+          "ts": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uptime_percent_24h": {
+            "type": "number"
+          },
+          "uptime_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "node_id",
+          "ts",
+          "uptime_seconds",
+          "cpu_percent",
+          "storage_used_bytes",
+          "memory_used_bytes",
+          "cpu_percent_per_core"
+        ],
+        "type": "object"
+      },
       "NodeUpdateRequest": {
         "properties": {
           "config": {
@@ -4912,6 +5309,93 @@
           "timestamp",
           "code",
           "output"
+        ],
+        "type": "object"
+      },
+      "PreviewEventOverlayParamsV1": {
+        "properties": {
+          "gap_max_buckets": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "max_events": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "min_separation_buckets": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "polarity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventPolarityV1"
+              }
+            ],
+            "nullable": true
+          },
+          "tolerance_seconds": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "z_threshold": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PreviewEventOverlaysV1": {
+        "properties": {
+          "candidate_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "focus_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "matched_candidate_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "matched_focus_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tolerance_seconds": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "focus_event_ts_ms",
+          "candidate_event_ts_ms",
+          "matched_focus_event_ts_ms",
+          "matched_candidate_event_ts_ms"
         ],
         "type": "object"
       },
@@ -5809,6 +6293,13 @@
         ],
         "type": "object"
       },
+      "SocAnchorMode": {
+        "enum": [
+          "disabled",
+          "blend_to_renogy_when_resting"
+        ],
+        "type": "string"
+      },
       "StepStatus": {
         "enum": [
           "pending",
@@ -5817,6 +6308,41 @@
           "failed"
         ],
         "type": "string"
+      },
+      "TelemetryPayload": {
+        "properties": {
+          "interval_seconds": {
+            "type": "number"
+          },
+          "quality": {
+            "default": 0,
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "rolling_average_seconds": {
+            "type": "number"
+          },
+          "sensor_id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "value"
+        ],
+        "type": "object"
       },
       "TemplatesResponse": {
         "properties": {
@@ -6490,6 +7016,12 @@
           "enabled"
         ],
         "type": "object"
+      },
+      "crate.routes.alarms.AlarmEventResponse": {
+        "$ref": "#/components/schemas/AlarmEventResponse"
+      },
+      "crate.services.alarm_engine.PreviewTargetResult": {
+        "$ref": "#/components/schemas/PreviewTargetResult"
       }
     },
     "securitySchemes": {

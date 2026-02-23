@@ -27,8 +27,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 NODE_AGENT_ROOT = REPO_ROOT / "apps" / "node-agent"
 LOCK_PATH = NODE_AGENT_ROOT / "poetry.lock"
 
-NODE_PLATFORMS = ["manylinux2014_aarch64", "linux_aarch64"]
+NODE_PLATFORMS = ["manylinux2014_aarch64", "manylinux_2_34_aarch64", "linux_aarch64"]
 TARGET_IMPLEMENTATION = "cp"
+PIWHEELS_SIMPLE = "https://www.piwheels.org/simple"
 
 @dataclass(frozen=True)
 class PythonTarget:
@@ -47,7 +48,7 @@ PYTHON_TARGETS: Sequence[PythonTarget] = (
 # interpreters so offline Pi deployments remain installable.
 PIN_OVERRIDES_BY_PYTHON_TAG: dict[str, dict[str, str]] = {
     # zeroconf 0.132.x does not publish cp313 wheels; 0.133.0 does.
-    "313": {"zeroconf": "0.133.0"},
+    "313": {"zeroconf": "0.133.0", "lgpio": "0.0.0.2"},
 }
 
 PIGPIO_VERSION = "1.79-1+rpt1"
@@ -236,6 +237,8 @@ def download_wheels(
             "PIP_CACHE_DIR": str(pip_cache),
         }
     )
+    if not env.get("PIP_EXTRA_INDEX_URL"):
+        env["PIP_EXTRA_INDEX_URL"] = PIWHEELS_SIMPLE
     proc = subprocess.run(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if proc.returncode != 0:
         output = (proc.stdout or "").strip().splitlines()

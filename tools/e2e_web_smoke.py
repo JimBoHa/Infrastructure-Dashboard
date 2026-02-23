@@ -1111,6 +1111,8 @@ def main() -> int:
     ensure_local_port("127.0.0.1", redis_port, "Redis")
 
     env = os.environ.copy()
+    if tier_a_mode:
+        env["FARM_E2E_REQUIRE_INSTALLED"] = "1"
     env["FARM_SIM_LAB_API_BASE"] = api_base
     env["FARM_SIM_LAB_BASE_URL"] = web_base
     env["FARM_SIM_LAB_FORECAST_URL"] = FORECAST_URL
@@ -1176,6 +1178,7 @@ def main() -> int:
         sim_lab_proc = spawn_process_group(
             runner_cmd, cwd=NODE_AGENT_DIR, env=env, label="sim-lab"
         )
+        wait_for_http(f"http://127.0.0.1:{CONTROL_PORT}/healthz", 120)
         if use_installed and installed_bins and not tier_a_mode:
             # Tier-B: Start new core-server/sidecar using installed binaries
             wait_for_port("127.0.0.1", CONTROL_PORT, 60)

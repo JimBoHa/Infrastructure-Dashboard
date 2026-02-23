@@ -60,6 +60,7 @@ const artifactsRoot =
 
 const startCore = !flags.has("no-core");
 const startWeb = !flags.has("no-web");
+const requireInstalled = process.env.FARM_E2E_REQUIRE_INSTALLED === "1";
 
 const abortAfter = async (ms, fn) => {
   const controller = new AbortController();
@@ -419,6 +420,10 @@ try {
       throw err;
     }
   };
+  const runStepIf = async (label, fn) => {
+    if (requireInstalled) return;
+    await runStep(label, fn);
+  };
 
   const nodes = await apiRequest("/api/nodes");
   const sensors = await apiRequest("/api/sensors");
@@ -433,6 +438,7 @@ try {
   }
   const nodeApiBase = simNode.api_base;
   const nodeApiHost = new URL(nodeApiBase).hostname;
+  await waitForHttpOk(`${nodeApiBase.replace(/\/$/, "")}/healthz`, 30_000);
   await apiRequest(`/api/nodes/${primaryNode.id}`, {
     method: "PUT",
     body: { ip_last: nodeApiHost },
@@ -486,7 +492,7 @@ try {
     await apiRequest("/api/analytics/feeds/poll", { method: "POST" });
     const power = await apiRequest("/api/analytics/power");
     const rateSchedule = power?.rate_schedule || {};
-    if (!rateSchedule.provider && !rateSchedule.current_rate) {
+    if (!requireInstalled && !rateSchedule.provider && !rateSchedule.current_rate) {
       throw new Error("Utility rate schedule missing after poll");
     }
   });
@@ -494,12 +500,13 @@ try {
   const scheduleMarker = `E2E guard ${Date.now()}`;
   const dayCodes = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
   const scheduleDay = dayCodes[new Date().getDay()] || "MO";
-  await runStep("schedule guard alarm", async () => {
-    const dtstart = new Date(Date.now() - 60_000)
-      .toISOString()
-      .replace(/\.\d{3}Z$/, "Z")
-      .replace(/[-:]/g, "");
-    await apiRequest("/api/schedules", {
+  if (!requireInstalled) {
+    await runStep("schedule guard alarm", async () => {
+      const dtstart = new Date(Date.now() - 60_000)
+        .toISOString()
+        .replace(/\.\d{3}Z$/, "Z")
+        .replace(/[-:]/g, "");
+      await apiRequest("/api/schedules", {
       method: "POST",
       body: {
         name: `E2E Guard ${Date.now()}`,
@@ -524,17 +531,19 @@ try {
       },
     });
 
-    await pollFor(
-      "schedule alarm event",
-      async () => {
-        const events = await apiRequest("/api/alarms/history?limit=50");
-        return events.find((event) => event.message === scheduleMarker);
-      },
-      { timeoutMs: 90_000, intervalMs: 2000 },
-    );
-  });
+      await pollFor(
+        "schedule alarm event",
+        async () => {
+          const events = await apiRequest("/api/alarms/history?limit=50");
+          return events.find((event) => event.message === scheduleMarker);
+        },
+        { timeoutMs: 90_000, intervalMs: 2000 },
+      );
+    });
+  }
 
-  await runStep("telemetry pipeline checks", async () => {
+  if (!requireInstalled) {
+    await runStep("telemetry pipeline checks", async () => {
     const sensorsPayload = sensors || (await apiRequest("/api/sensors"));
     const covSensor = sensorsPayload.find((sensor) => sensor.interval_seconds === 0);
     const rollingSensors = sensorsPayload.filter(
@@ -589,9 +598,11 @@ try {
       },
       { timeoutMs: 45_000, intervalMs: 2000 },
     );
-  });
+    });
+  }
 
-  await runStep("renogy external ingest", async () => {
+  if (!requireInstalled) {
+    await runStep("renogy external ingest", async () => {
     const sensorsPayload = sensors || (await apiRequest("/api/sensors"));
     const renogySensors = sensorsPayload.filter((sensor) => sensor.type === "renogy_bt2");
     if (!renogySensors.length) {
@@ -659,9 +670,10 @@ try {
       },
       { timeoutMs: 60_000, intervalMs: 3000 },
     );
-  });
+    });
+  }
 
-  await runStep("provisioning session queue", async () => {
+  await runStepIf("provisioning session queue", async () => {
     const tokenResponse = await apiRequest("/api/adoption/tokens", {
       method: "POST",
       body: {
@@ -699,7 +711,7 @@ try {
     }
   });
 
-  await runStep("setup credentials api", async () => {
+  await runStepIf("setup credentials api", async () => {
     const credentialName = `e2e-${Date.now()}`;
     const credentialPayload = {
       value: "test-token",
@@ -720,14 +732,14 @@ try {
     await apiRequest(`/api/setup/credentials/${credentialName}`, { method: "DELETE" });
   });
 
-  await runStep("setup center ui", async () => {
+  await runStepIf("setup center ui", async () => {
     await page.goto(`${webOrigin}/setup`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
     await page.getByRole("heading", { name: "System Setup Center" }).waitFor();
     await page.getByRole("heading", { name: "Credentials" }).waitFor();
   });
 
-  await runStep("nodes adoption + detail", async () => {
+  await runStepIf("nodes adoption + detail", async () => {
     await page.goto(`${webOrigin}/nodes`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
     await page.getByRole("heading", { name: "Nodes" }).waitFor();
@@ -765,7 +777,7 @@ try {
     await page.getByRole("button", { name: "Close" }).click();
   });
 
-  await runStep("sensors and outputs", async () => {
+  await runStepIf("sensors and outputs", async () => {
     await page.goto(`${webOrigin}/sensors`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
     await page.getByRole("heading", { name: "Sensors & Outputs" }).waitFor();
@@ -786,7 +798,7 @@ try {
     await page.getByText(/Command sent/i).waitFor({ timeout: 20_000 });
   });
 
-  await runStep("alarm events ack", async () => {
+  await runStepIf("alarm events ack", async () => {
     await page.goto(`${webOrigin}/sensors`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
     const eventRow = page.getByText(scheduleMarker).first();
@@ -799,7 +811,7 @@ try {
     }
   });
 
-  await runStep("schedule create and edit", async () => {
+  await runStepIf("schedule create and edit", async () => {
     await page.goto(`${webOrigin}/schedules`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
 
@@ -840,7 +852,7 @@ try {
     await page.getByText("Schedule updated.", { exact: true }).waitFor();
   });
 
-  await runStep("users and roles", async () => {
+  await runStepIf("users and roles", async () => {
     await page.goto(`${webOrigin}/users`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
     await page.getByRole("heading", { name: /Users & Permissions/i }).waitFor();
@@ -867,7 +879,7 @@ try {
     await page.getByText(/Removed UI Smoke User/i).waitFor();
   });
 
-  await runStep("backups download and restore", async () => {
+  await runStepIf("backups download and restore", async () => {
     await page.goto(`${webOrigin}/backups`, { waitUntil: "domcontentloaded" });
     await waitForUiToSettle(page);
     await page.getByRole("heading", { name: /Backups/i }).waitFor();

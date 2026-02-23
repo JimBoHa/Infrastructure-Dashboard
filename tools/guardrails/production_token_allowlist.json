@@ -96,6 +96,24 @@
       "token": "fallback",
       "max_count": 2,
       "reason": "Baseline allowlisted fallback/stub/demo usage; tighten in follow-up cleanup tasks."
+    },
+    {
+      "path": "apps/core-server-rs/src/routes/display_profiles.rs",
+      "token": "fallback",
+      "max_count": 2,
+      "reason": "Fallback display profile URL selection uses local fallback variable name."
+    },
+    {
+      "path": "apps/farmctl/src/cli.rs",
+      "token": "fallback",
+      "max_count": 2,
+      "reason": "CLI help text references fallback config resolution."
+    },
+    {
+      "path": "apps/farmctl/src/dev_db.rs",
+      "token": "demo",
+      "max_count": 3,
+      "reason": "Dev DB seed/reset helpers reference demo data."
     }
   ]
 }

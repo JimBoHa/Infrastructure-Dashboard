@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::auth::{require_capabilities, AuthUser};
 use crate::device_catalog;
+use crate::device_catalog::DeviceVendor;
 use crate::error::map_db_error;
 use crate::services::external_devices::ExternalDeviceConfig;
 use crate::state::AppState;
@@ -16,7 +17,8 @@ use crate::state::AppState;
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ExternalDeviceCatalogResponse {
     pub version: u32,
-    pub vendors: Vec<device_catalog::DeviceVendor>,
+    #[schema(value_type = Vec<DeviceVendor>)]
+    pub vendors: Vec<DeviceVendor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
@@ -286,6 +288,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/integrations/devices/catalog", get(get_device_catalog))
         .route("/integrations/devices", get(list_devices).post(create_device))
-        .route("/integrations/devices/:node_id/sync", post(sync_device))
-        .route("/integrations/devices/:node_id", delete(delete_device))
+        .route("/integrations/devices/{node_id}/sync", post(sync_device))
+        .route("/integrations/devices/{node_id}", delete(delete_device))
 }

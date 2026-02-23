@@ -296,6 +296,12 @@ pub fn generate_plan(config: &SetupConfig) -> Result<LaunchdPlan> {
                     config.schedule_poll_interval_seconds.to_string(),
                 ),
             ]);
+            if config.profile == InstallProfile::E2e {
+                env.insert(
+                    "CORE_ALLOW_BOOTSTRAP_USER_CREATE".to_string(),
+                    "1".to_string(),
+                );
+            }
             if let Some(username) = config
                 .mqtt_username
                 .as_deref()

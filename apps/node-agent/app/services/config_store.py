@@ -88,6 +88,8 @@ def apply_config(settings: Settings, payload: Dict[str, Any]) -> Settings:
             "capabilities",
         ]:
             if field in node_payload:
+                if field == "adoption_token" and node_payload[field] is None:
+                    continue
                 candidate[field] = node_payload[field]
 
     if "sensors" in payload and payload.get("sensors") is not None:
