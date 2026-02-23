@@ -1,12 +1,15 @@
 use anyhow::{bail, Context, Result};
-use chrono::{Duration, Timelike, Utc};
+use chrono::{DateTime, Duration, Timelike, Utc};
+use eui48::MacAddress;
 use postgres::{Client, NoTls};
 use rand::Rng;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
+use uuid::Uuid;
 
 use crate::cli::{DbArgs, DbCommands, DbMigrateArgs, DbSeedDemoArgs};
 use crate::config::postgres_connection_string;
@@ -158,12 +161,12 @@ fn migrate(args: DbMigrateArgs) -> Result<()> {
 
 #[derive(Debug, Clone)]
 struct NodeSpec {
-    id: &'static str,
+    id: Uuid,
     name: &'static str,
     status: &'static str,
-    mac_eth: &'static str,
-    mac_wifi: &'static str,
-    ip_last: &'static str,
+    mac_eth: MacAddress,
+    mac_wifi: MacAddress,
+    ip_last: IpAddr,
     uptime_seconds: i64,
     cpu_percent: f32,
     storage_used_bytes: i64,
@@ -202,12 +205,12 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
 
     let node_specs = vec![
         NodeSpec {
-            id: "11111111-1111-1111-1111-111111111111",
+            id: Uuid::parse_str("11111111-1111-1111-1111-111111111111")?,
             name: "North Field Controller",
             status: "online",
-            mac_eth: "40:16:7E:AA:01:01",
-            mac_wifi: "40:16:7E:AA:01:02",
-            ip_last: "127.0.0.1",
+            mac_eth: MacAddress::parse_str("40:16:7E:AA:01:01")?,
+            mac_wifi: MacAddress::parse_str("40:16:7E:AA:01:02")?,
+            ip_last: "127.0.0.1".parse()?,
             uptime_seconds: 72_600,
             cpu_percent: 32.4,
             storage_used_bytes: 78_956_371_200,
@@ -221,12 +224,12 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
             }),
         },
         NodeSpec {
-            id: "22222222-2222-2222-2222-222222222222",
+            id: Uuid::parse_str("22222222-2222-2222-2222-222222222222")?,
             name: "Irrigation Pump House",
             status: "online",
-            mac_eth: "40:16:7E:AA:02:01",
-            mac_wifi: "40:16:7E:AA:02:02",
-            ip_last: "127.0.0.1",
+            mac_eth: MacAddress::parse_str("40:16:7E:AA:02:01")?,
+            mac_wifi: MacAddress::parse_str("40:16:7E:AA:02:02")?,
+            ip_last: "127.0.0.1".parse()?,
             uptime_seconds: 54_100,
             cpu_percent: 28.9,
             storage_used_bytes: 41_270_149_120,
@@ -239,12 +242,12 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
             }),
         },
         NodeSpec {
-            id: "33333333-3333-3333-3333-333333333333",
+            id: Uuid::parse_str("33333333-3333-3333-3333-333333333333")?,
             name: "Greenhouse South",
             status: "maintenance",
-            mac_eth: "40:16:7E:AA:03:01",
-            mac_wifi: "40:16:7E:AA:03:02",
-            ip_last: "127.0.0.1",
+            mac_eth: MacAddress::parse_str("40:16:7E:AA:03:01")?,
+            mac_wifi: MacAddress::parse_str("40:16:7E:AA:03:02")?,
+            ip_last: "127.0.0.1".parse()?,
             uptime_seconds: 12_400,
             cpu_percent: 12.1,
             storage_used_bytes: 19_430_400_000,
@@ -515,8 +518,7 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
     reset_demo_tables(&mut tx)?;
 
     let now = Utc::now();
-    let now_rfc3339 = now.to_rfc3339();
-    let mut node_ids: HashMap<&str, String> = HashMap::new();
+    let mut node_ids: HashMap<&str, Uuid> = HashMap::new();
     for spec in &node_specs {
         tx.execute(
             r#"
@@ -533,12 +535,12 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
                 &spec.uptime_seconds,
                 &spec.cpu_percent,
                 &spec.storage_used_bytes,
-                &spec.config.to_string(),
-                &now_rfc3339,
+                &spec.config,
+                &now,
             ],
         )
         .with_context(|| format!("Failed to insert node {}", spec.name))?;
-        node_ids.insert(spec.name, spec.id.to_string());
+        node_ids.insert(spec.name, spec.id);
     }
 
     for (name, keep_days) in retention_overrides {
@@ -568,14 +570,13 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
                 &spec.unit,
                 &spec.interval_seconds,
                 &spec.rolling_avg_seconds,
-                &spec.config.to_string(),
+                &spec.config,
             ],
         )
         .with_context(|| format!("Failed to insert sensor {}", spec.sensor_id))?;
     }
 
     let last_command = now - Duration::minutes(15);
-    let last_command_rfc3339 = last_command.to_rfc3339();
     for spec in &output_specs {
         let node_id = node_ids
             .get(spec.node_name)
@@ -591,9 +592,9 @@ fn seed_demo(args: DbSeedDemoArgs) -> Result<()> {
                 &spec.name,
                 &spec.output_type,
                 &spec.state,
-                &spec.supported_states.to_string(),
-                &last_command_rfc3339,
-                &spec.config.to_string(),
+                &spec.supported_states,
+                &last_command,
+                &spec.config,
             ],
         )
         .with_context(|| format!("Failed to insert output {}", spec.id))?;
@@ -643,13 +644,12 @@ fn insert_metrics(tx: &mut postgres::Transaction<'_>, sensors: &[SensorSpec]) ->
         while current <= now {
             let noise: f64 = rng.gen_range(-2.0..2.0);
             let value = (base + noise * 1.0).round_to(2);
-            let current_rfc3339 = current.to_rfc3339();
             tx.execute(
                 r#"
                 INSERT INTO metrics (sensor_id, ts, value, quality)
                 VALUES ($1, $2::timestamptz, $3, 0)
                 "#,
-                &[&spec.sensor_id, &current_rfc3339, &value],
+                &[&spec.sensor_id, &current, &value],
             )
             .with_context(|| format!("Failed to insert metric point for {}", spec.sensor_id))?;
             current = current + Duration::minutes(30);
@@ -667,7 +667,6 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
 
     for offset in (0..=168).rev() {
         let ts = now - Duration::hours(offset);
-        let ts_rfc3339 = ts.to_rfc3339();
         let offset_f = offset as f64;
         let wave = (offset_f / 6.0).sin();
         let solar_wave = (offset_f / 4.5).sin().max(0.0);
@@ -679,28 +678,28 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
         insert_analytics_sample(
             tx,
             "analytics_power_samples",
-            &ts_rfc3339,
+            &ts,
             "total_kw",
             total_kw.round_to(3),
         )?;
         insert_analytics_sample(
             tx,
             "analytics_power_samples",
-            &ts_rfc3339,
+            &ts,
             "solar_kw",
             solar_kw.round_to(3),
         )?;
         insert_analytics_sample(
             tx,
             "analytics_power_samples",
-            &ts_rfc3339,
+            &ts,
             "grid_kw",
             grid_kw.round_to(3),
         )?;
         insert_analytics_sample(
             tx,
             "analytics_power_samples",
-            &ts_rfc3339,
+            &ts,
             "consumption_kwh",
             consumption_kwh.round_to(3),
         )?;
@@ -712,15 +711,15 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
         insert_analytics_sample(
             tx,
             "analytics_water_samples",
-            &ts_rfc3339,
+            &ts,
             "domestic_gal",
             domestic_gal.round_to(3),
         )?;
-        insert_analytics_sample(tx, "analytics_water_samples", &ts_rfc3339, "ag_gal", ag_gal.round_to(3))?;
+        insert_analytics_sample(tx, "analytics_water_samples", &ts, "ag_gal", ag_gal.round_to(3))?;
         insert_analytics_sample(
             tx,
             "analytics_water_samples",
-            &ts_rfc3339,
+            &ts,
             "reservoir_depth_ft",
             reservoir_depth.round_to(3),
         )?;
@@ -729,7 +728,7 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
         insert_analytics_sample(
             tx,
             "analytics_soil_samples",
-            &ts_rfc3339,
+            &ts,
             "avg_moisture",
             avg_moisture.round_to(3),
         )?;
@@ -739,23 +738,23 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
         insert_analytics_sample(
             tx,
             "analytics_status_samples",
-            &ts_rfc3339,
+            &ts,
             "alarms_last_168h",
             alarms.round_to(3),
         )?;
-        insert_analytics_sample(tx, "analytics_status_samples", &ts_rfc3339, "nodes_online", 2.0)?;
-        insert_analytics_sample(tx, "analytics_status_samples", &ts_rfc3339, "nodes_offline", 1.0)?;
+        insert_analytics_sample(tx, "analytics_status_samples", &ts, "nodes_online", 2.0)?;
+        insert_analytics_sample(tx, "analytics_status_samples", &ts, "nodes_offline", 1.0)?;
         insert_analytics_sample(
             tx,
             "analytics_status_samples",
-            &ts_rfc3339,
+            &ts,
             "battery_soc",
             battery_soc.round_to(3),
         )?;
         insert_analytics_sample(
             tx,
             "analytics_status_samples",
-            &ts_rfc3339,
+            &ts,
             "solar_kw",
             solar_kw.round_to(3),
         )?;
@@ -763,13 +762,12 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
 
     for offset in (0..=168).rev().step_by(24) {
         let ts = now - Duration::hours(offset);
-        let ts_rfc3339 = ts.to_rfc3339();
         let offset_f = offset as f64;
         let north_base = 32.0 + 1.8 * (offset_f / 5.0).sin();
         let south_base = 29.0 + 1.5 * (offset_f / 4.5).cos();
         insert_soil_field_stat(
             tx,
-            &ts_rfc3339,
+            &ts,
             "North Field",
             (north_base - 2.0).round_to(3),
             (north_base + 2.5).round_to(3),
@@ -777,7 +775,7 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
         )?;
         insert_soil_field_stat(
             tx,
-            &ts_rfc3339,
+            &ts,
             "South Pasture",
             (south_base - 1.7).round_to(3),
             (south_base + 2.2).round_to(3),
@@ -807,6 +805,7 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
         serde_json::json!({"last_sync_minutes": serde_json::Value::Null}),
     )?;
 
+    let rate_details = serde_json::json!({"tier": "peak", "currency": "USD"});
     tx.execute(
         r#"
         INSERT INTO analytics_rate_schedules (category, provider, current_rate, est_monthly_cost, details)
@@ -817,7 +816,7 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
             &"PG&E TOU-D",
             &0.27_f64,
             &812.4_f64,
-            &serde_json::json!({"tier": "peak", "currency": "USD"}).to_string(),
+            &rate_details,
         ],
     )
     .context("Failed to insert analytics_rate_schedule")?;
@@ -828,17 +827,17 @@ fn insert_analytics(tx: &mut postgres::Transaction<'_>) -> Result<()> {
 fn insert_analytics_sample(
     tx: &mut postgres::Transaction<'_>,
     table: &str,
-    recorded_at_rfc3339: &str,
+    recorded_at: &DateTime<Utc>,
     metric: &str,
     value: f64,
 ) -> Result<()> {
     let sql = format!(
         "INSERT INTO {table} (recorded_at, metric, value, metadata) VALUES ($1::timestamptz, $2, $3, '{{}}'::jsonb) ON CONFLICT (recorded_at, metric) DO UPDATE SET value = EXCLUDED.value",
     );
-    tx.execute(&sql, &[&recorded_at_rfc3339, &metric, &value]).with_context(|| {
+    tx.execute(&sql, &[recorded_at, &metric, &value]).with_context(|| {
         format!(
             "Failed to insert {} {} at {}",
-            table, metric, recorded_at_rfc3339
+            table, metric, recorded_at
         )
     })?;
     Ok(())
@@ -846,7 +845,7 @@ fn insert_analytics_sample(
 
 fn insert_soil_field_stat(
     tx: &mut postgres::Transaction<'_>,
-    recorded_at_rfc3339: &str,
+    recorded_at: &DateTime<Utc>,
     field_name: &str,
     min_pct: f64,
     max_pct: f64,
@@ -862,7 +861,7 @@ fn insert_soil_field_stat(
               avg_pct = EXCLUDED.avg_pct
         "#,
         &[
-            &recorded_at_rfc3339,
+            recorded_at,
             &field_name,
             &min_pct,
             &max_pct,
@@ -885,7 +884,7 @@ fn insert_integration_status(
         INSERT INTO analytics_integration_status (category, name, status, metadata)
         VALUES ($1, $2, $3, $4::jsonb)
         "#,
-        &[&category, &name, &status, &metadata.to_string()],
+        &[&category, &name, &status, &metadata],
     )
     .with_context(|| format!("Failed to insert analytics_integration_status {name}"))?;
     Ok(())
@@ -898,7 +897,7 @@ fn write_backup_fixtures(backup_root: &Path, nodes: &[NodeSpec]) -> Result<()> {
     let fetched_at = Utc::now().to_rfc3339();
 
     for node in nodes {
-        let node_dir = backup_root.join(node.id);
+        let node_dir = backup_root.join(node.id.to_string());
         fs::create_dir_all(&node_dir)
             .with_context(|| format!("Failed to create {}", node_dir.display()))?;
         let backup_path = node_dir.join(format!("{backup_date}.json"));

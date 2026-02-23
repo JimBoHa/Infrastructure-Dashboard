@@ -797,6 +797,7 @@ def build_core_env(
             "CORE_MQTT_HOST": mqtt_host,
             "CORE_MQTT_PORT": str(mqtt_port),
             "CORE_DEMO_MODE": "false",
+            "CORE_ALLOW_BOOTSTRAP_USER_CREATE": "true",
             "CORE_ENABLE_ANALYTICS_FEEDS": "true",
             "CORE_ENABLE_FORECAST_INGESTION": "true",
             "CORE_ENABLE_INDICATOR_GENERATION": "true",

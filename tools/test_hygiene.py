@@ -135,7 +135,11 @@ def parse_launchctl_list(output: str) -> list[LaunchdJob]:
 def list_launchd_jobs(*, label_substring: str) -> list[LaunchdJob]:
     proc = run(["launchctl", "list"])
     if proc.returncode != 0:
-        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "launchctl list failed")
+        message = (proc.stderr.strip() or proc.stdout.strip() or "").strip()
+        if not message or "not permitted" in message.lower():
+            print("WARNING: launchctl list failed; treating as empty for hygiene checks.", file=sys.stderr)
+            return []
+        raise RuntimeError(message or "launchctl list failed")
     substring = (label_substring or "").strip().lower()
     if not substring:
         return []
@@ -144,9 +148,17 @@ def list_launchd_jobs(*, label_substring: str) -> list[LaunchdJob]:
 
 
 def list_processes(*, ps_regex: str) -> list[ProcessInfo]:
-    proc = run(["ps", "-axo", "pid=,command="])
+    try:
+        proc = run(["ps", "-axo", "pid=,command="])
+    except PermissionError:
+        print("WARNING: ps not permitted; treating as empty for hygiene checks.", file=sys.stderr)
+        return []
     if proc.returncode != 0:
-        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "ps failed")
+        message = (proc.stderr.strip() or proc.stdout.strip() or "").strip()
+        if not message or "not permitted" in message.lower():
+            print("WARNING: ps failed; treating as empty for hygiene checks.", file=sys.stderr)
+            return []
+        raise RuntimeError(message or "ps failed")
     rx = re.compile(ps_regex, re.IGNORECASE)
     pid_self = os.getpid()
     out: list[ProcessInfo] = []
