@@ -422,15 +422,13 @@ try {
   };
   const runStepIf = async (label, fn) => {
     if (requireInstalled) return;
-    try {
-      await runStep(label, fn);
-    } catch (err) {
-      console.warn(`[smoke] ${label} failed; continuing. ${err?.message || err}`);
-    }
+    await runStep(label, fn);
   };
 
   const nodes = await apiRequest("/api/nodes");
   const sensors = await apiRequest("/api/sensors");
+  const simLabAuth = process.env.SIM_LAB_NODE_AUTH_TOKEN || "sim-lab-token";
+  const simLabAuthHeaders = { Authorization: `Bearer ${simLabAuth}` };
 
   const primaryNode = nodes[0];
   if (!primaryNode) {
@@ -450,7 +448,10 @@ try {
 
   const backupDate = new Date().toISOString().slice(0, 10);
   const nodeConfig = await abortAfter(10_000, (signal) =>
-    fetch(`${nodeApiBase}/v1/config`, { signal }).then((res) => res.json())
+    fetch(`${nodeApiBase}/v1/config`, {
+      signal,
+      headers: simLabAuthHeaders,
+    }).then((res) => res.json())
   );
   const backupRoot =
     process.env.FARM_BACKUP_ROOT ||
@@ -506,7 +507,7 @@ try {
   const scheduleDay = dayCodes[new Date().getDay()] || "MO";
   if (!requireInstalled) {
     await runStep("schedule guard alarm", async () => {
-      const dtstart = new Date(Date.now() - 60_000)
+      const dtstart = new Date(Date.now() - 5_000)
         .toISOString()
         .replace(/\.\d{3}Z$/, "Z")
         .replace(/[-:]/g, "");
@@ -515,7 +516,7 @@ try {
       body: {
         name: `E2E Guard ${Date.now()}`,
         rrule: `DTSTART:${dtstart}\nRRULE:FREQ=MINUTELY;INTERVAL=1`,
-        blocks: [{ day: scheduleDay, start: "00:00", end: "23:59" }],
+        blocks: [],
         conditions: [
           {
             type: "forecast",
@@ -535,20 +536,14 @@ try {
       },
     });
 
-      try {
-        await pollFor(
-          "schedule alarm event",
-          async () => {
-            const events = await apiRequest("/api/alarms/history?limit=50");
-            return events.find((event) => event.message === scheduleMarker);
-          },
-          { timeoutMs: 180_000, intervalMs: 2000 },
-        );
-      } catch (error) {
-        console.warn(
-          `[smoke] schedule guard alarm not observed; continuing. ${error?.message || error}`,
-        );
-      }
+      await pollFor(
+        "schedule alarm event",
+        async () => {
+          const events = await apiRequest("/api/alarms/history?limit=50");
+          return events.find((event) => event.message === scheduleMarker);
+        },
+        { timeoutMs: 90_000, intervalMs: 2000 },
+      );
     });
   }
 
@@ -626,7 +621,10 @@ try {
 
     const renogyToken = `renogy-${Date.now()}`;
     const configResp = await abortAfter(10_000, (signal) =>
-      fetch(`${renogyNode.api_base}/v1/config`, { signal }).then((res) => res.json())
+      fetch(`${renogyNode.api_base}/v1/config`, {
+        signal,
+        headers: simLabAuthHeaders,
+      }).then((res) => res.json())
     );
     configResp.renogy_bt2 = {
       ...(configResp.renogy_bt2 || {}),
@@ -638,7 +636,10 @@ try {
     await abortAfter(10_000, (signal) =>
       fetch(`${renogyNode.api_base}/v1/config`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...simLabAuthHeaders,
+        },
         body: JSON.stringify(configResp),
         signal,
       })
@@ -663,29 +664,23 @@ try {
       })
     );
 
-    try {
-      await pollFor(
-        "renogy metrics",
-        async () => {
-          const end = new Date();
-          const start = new Date(end.getTime() - 60 * 1000);
-          const params = new URLSearchParams();
-          renogySensors.forEach((sensor) => params.append("sensor_ids[]", sensor.sensor_id));
-          params.append("start", start.toISOString());
-          params.append("end", end.toISOString());
-          params.append("interval", "5");
-          const response = await apiRequest(`/api/metrics/query?${params.toString()}`);
-          const series = response.series ?? [];
-          const populated = series.filter((entry) => entry.points && entry.points.length > 0);
-          return populated.length >= Math.min(2, renogySensors.length) ? populated : null;
-        },
-        { timeoutMs: 60_000, intervalMs: 3000 },
-      );
-    } catch (error) {
-      console.warn(
-        `[smoke] renogy metrics not observed; continuing. ${error?.message || error}`,
-      );
-    }
+    await pollFor(
+      "renogy metrics",
+      async () => {
+        const end = new Date();
+        const start = new Date(end.getTime() - 60 * 1000);
+        const params = new URLSearchParams();
+        renogySensors.forEach((sensor) => params.append("sensor_ids[]", sensor.sensor_id));
+        params.append("start", start.toISOString());
+        params.append("end", end.toISOString());
+        params.append("interval", "5");
+        const response = await apiRequest(`/api/metrics/query?${params.toString()}`);
+        const series = response.series ?? [];
+        const populated = series.filter((entry) => entry.points && entry.points.length > 0);
+        return populated.length >= Math.min(2, renogySensors.length) ? populated : null;
+      },
+      { timeoutMs: 60_000, intervalMs: 3000 },
+    );
     });
   }
 
@@ -702,7 +697,7 @@ try {
     const sessionResponse = await abortAfter(10_000, (signal) =>
       fetch(`${nodeApiBase}/v1/provisioning/session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...simLabAuthHeaders },
         body: JSON.stringify({
           device_name: "E2E iPhone",
           pin: "123456",
@@ -715,17 +710,18 @@ try {
       }).then((res) => res.json())
     );
     if (!sessionResponse.session_id) {
-      console.warn("[smoke] provisioning session not created; skipping queue check.");
-      return;
+      throw new Error("Provisioning session creation failed");
     }
     const queue = await abortAfter(10_000, (signal) =>
-      fetch(`${nodeApiBase}/v1/provision/queue`, { signal }).then((res) => res.json())
+      fetch(`${nodeApiBase}/v1/provision/queue`, {
+        signal,
+        headers: simLabAuthHeaders,
+      }).then((res) => res.json())
     );
     const pending = queue.pending || [];
     const found = pending.find((entry) => entry.session_id === sessionResponse.session_id);
     if (!found) {
-      console.warn("[smoke] provisioning session not found in queue; continuing.");
-      return;
+      throw new Error("Provisioning session not found in queue");
     }
   });
 
@@ -751,14 +747,10 @@ try {
   });
 
   await runStepIf("setup center ui", async () => {
-    try {
-      await page.goto(`${webOrigin}/setup`, { waitUntil: "domcontentloaded" });
-      await waitForUiToSettle(page);
-      await page.getByRole("heading", { name: "System Setup Center" }).waitFor();
-      await page.getByRole("heading", { name: "Credentials" }).waitFor();
-    } catch (error) {
-      console.warn(`[smoke] setup center ui not ready; continuing. ${error?.message || error}`);
-    }
+    await page.goto(`${webOrigin}/setup`, { waitUntil: "domcontentloaded" });
+    await waitForUiToSettle(page);
+    await page.getByRole("heading", { name: "System Setup Center" }).waitFor();
+    await page.getByRole("heading", { name: "Credentials" }).waitFor();
   });
 
   await runStepIf("nodes adoption + detail", async () => {

@@ -44,6 +44,11 @@ def _default_advertise_ip() -> str:
         return "127.0.0.1"
 
 
+def sim_lab_node_auth_token() -> str:
+    token = os.environ.get("SIM_LAB_NODE_AUTH_TOKEN", "sim-lab-token").strip()
+    return token or "sim-lab-token"
+
+
 sys.path.insert(0, str(NODE_DIR))
 from app.config import (  # type: ignore  # noqa: E402
     OutputConfig as AgentOutputConfig,
@@ -671,6 +676,7 @@ async def launch_node_agent(
     env = os.environ.copy()
     for key in ("POETRY_ACTIVE", "VIRTUAL_ENV", "PYTHONHOME"):
         env.pop(key, None)
+    env["NODE_PROVISIONING_SECRET"] = sim_lab_node_auth_token()
     env.update(
         {
             "NODE_CONFIG_PATH": str(config_path),

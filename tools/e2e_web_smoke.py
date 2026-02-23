@@ -1119,6 +1119,7 @@ def main() -> int:
     env["FARM_SIM_LAB_FORECAST_URL"] = FORECAST_URL
     env["FARM_SIM_LAB_RATES_URL"] = RATES_URL
     env["FARM_SIM_LAB_MQTT_URL"] = mqtt_url
+    env["SIM_LAB_NODE_AUTH_TOKEN"] = env.get("SIM_LAB_NODE_AUTH_TOKEN", "sim-lab-token")
     # Safety: Tier-A mode points at the installed controller which uses a real production database.
     # Do not propagate CORE_DATABASE_URL into the Sim Lab process unless we explicitly intend to run
     # DB-affecting operations (migrations/seed) against an E2E/local database.
