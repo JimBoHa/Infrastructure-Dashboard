@@ -1952,6 +1952,211 @@
         },
         "type": "object"
       },
+      "CloudAccessResponse": {
+        "properties": {
+          "cloud_server_base_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "last_attempt_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "last_error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "last_success_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "local_site_key": {
+            "nullable": true,
+            "type": "string"
+          },
+          "registered_site_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "role": {
+            "type": "string"
+          },
+          "sync_enabled": {
+            "type": "boolean"
+          },
+          "sync_interval_seconds": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "role",
+          "sync_interval_seconds",
+          "sync_enabled",
+          "registered_site_count"
+        ],
+        "type": "object"
+      },
+      "CloudAccessUpdateRequest": {
+        "properties": {
+          "cloud_server_base_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sync_enabled": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "sync_interval_seconds": {
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "CloudIngestResult": {
+        "properties": {
+          "accepted_metrics": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "site_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "site_name",
+          "accepted_metrics"
+        ],
+        "type": "object"
+      },
+      "CloudMetricPoint": {
+        "properties": {
+          "inserted_at": {
+            "type": "string"
+          },
+          "quality": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "sensor_id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "ts",
+          "value",
+          "quality",
+          "inserted_at"
+        ],
+        "type": "object"
+      },
+      "CloudSiteResponse": {
+        "properties": {
+          "created_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "key_fingerprint": {
+            "type": "string"
+          },
+          "last_ingested_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "last_metrics_count": {
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "last_payload_bytes": {
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "site_name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "site_name",
+          "key_fingerprint",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "CloudSyncPayload": {
+        "properties": {
+          "backup_retention": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "backups": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "dashboard_snapshot": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/CloudMetricPoint"
+            },
+            "type": "array"
+          },
+          "metrics_max_inserted_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "schema_version": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sent_at": {
+            "type": "string"
+          },
+          "source_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "sent_at",
+          "source_name",
+          "dashboard_snapshot",
+          "backups",
+          "backup_retention"
+        ],
+        "type": "object"
+      },
       "ConnectionResponse": {
         "properties": {
           "cloud_address": {
@@ -3039,14 +3244,6 @@
           "devices"
         ],
         "type": "object"
-      },
-      "EventPolarityV1": {
-        "enum": [
-          "both",
-          "up",
-          "down"
-        ],
-        "type": "string"
       },
       "ExternalDeviceCatalogResponse": {
         "properties": {
@@ -4747,81 +4944,6 @@
         ],
         "type": "object"
       },
-      "NodeStatusPayload": {
-        "properties": {
-          "cpu_percent": {
-            "type": "number"
-          },
-          "cpu_percent_per_core": {
-            "items": {
-              "type": "number"
-            },
-            "type": "array"
-          },
-          "heartbeats": {
-            "type": "number"
-          },
-          "memory_percent": {
-            "type": "number"
-          },
-          "memory_used_bytes": {
-            "type": "integer"
-          },
-          "mesh": {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          "name": {
-            "type": "string"
-          },
-          "network_jitter_ms": {
-            "type": "number"
-          },
-          "network_latency_ms": {
-            "type": "number"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "outputs": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "storage_used_bytes": {
-            "type": "integer"
-          },
-          "ts": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "uptime_percent_24h": {
-            "type": "number"
-          },
-          "uptime_seconds": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "status",
-          "node_id",
-          "ts",
-          "uptime_seconds",
-          "cpu_percent",
-          "storage_used_bytes",
-          "memory_used_bytes",
-          "cpu_percent_per_core"
-        ],
-        "type": "object"
-      },
       "NodeUpdateRequest": {
         "properties": {
           "config": {
@@ -5312,93 +5434,6 @@
         ],
         "type": "object"
       },
-      "PreviewEventOverlayParamsV1": {
-        "properties": {
-          "gap_max_buckets": {
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          },
-          "max_events": {
-            "format": "int32",
-            "minimum": 0,
-            "nullable": true,
-            "type": "integer"
-          },
-          "min_separation_buckets": {
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          },
-          "polarity": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EventPolarityV1"
-              }
-            ],
-            "nullable": true
-          },
-          "tolerance_seconds": {
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          },
-          "z_threshold": {
-            "format": "double",
-            "nullable": true,
-            "type": "number"
-          }
-        },
-        "type": "object"
-      },
-      "PreviewEventOverlaysV1": {
-        "properties": {
-          "candidate_event_ts_ms": {
-            "default": [],
-            "items": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "focus_event_ts_ms": {
-            "default": [],
-            "items": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "matched_candidate_event_ts_ms": {
-            "default": [],
-            "items": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "matched_focus_event_ts_ms": {
-            "default": [],
-            "items": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "tolerance_seconds": {
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "focus_event_ts_ms",
-          "candidate_event_ts_ms",
-          "matched_focus_event_ts_ms",
-          "matched_candidate_event_ts_ms"
-        ],
-        "type": "object"
-      },
       "PreviewTargetResult": {
         "properties": {
           "observed_value": {
@@ -5566,6 +5601,21 @@
           "kwp",
           "time_format",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "RegisterCloudSiteRequest": {
+        "properties": {
+          "site_key": {
+            "type": "string"
+          },
+          "site_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_name",
+          "site_key"
         ],
         "type": "object"
       },
@@ -6309,41 +6359,6 @@
         ],
         "type": "string"
       },
-      "TelemetryPayload": {
-        "properties": {
-          "interval_seconds": {
-            "type": "number"
-          },
-          "quality": {
-            "default": 0,
-            "type": "integer"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "rolling_average_seconds": {
-            "type": "number"
-          },
-          "sensor_id": {
-            "type": "string"
-          },
-          "timestamp": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "value": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "sensor_id",
-          "value"
-        ],
-        "type": "object"
-      },
       "TemplatesResponse": {
         "properties": {
           "templates": {
@@ -7016,12 +7031,6 @@
           "enabled"
         ],
         "type": "object"
-      },
-      "crate.routes.alarms.AlarmEventResponse": {
-        "$ref": "#/components/schemas/AlarmEventResponse"
-      },
-      "crate.services.alarm_engine.PreviewTargetResult": {
-        "$ref": "#/components/schemas/PreviewTargetResult"
       }
     },
     "securitySchemes": {
@@ -8904,6 +8913,311 @@
         ],
         "tags": [
           "chart-annotations"
+        ]
+      }
+    },
+    "/api/cloud/access": {
+      "get": {
+        "operationId": "get_cloud_access",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccessResponse"
+                }
+              }
+            },
+            "description": "Cloud access status"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
+        ]
+      },
+      "post": {
+        "operationId": "update_cloud_access",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudAccessUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccessResponse"
+                }
+              }
+            },
+            "description": "Updated cloud access status"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
+        ]
+      }
+    },
+    "/api/cloud/access/key/rotate": {
+      "post": {
+        "operationId": "rotate_cloud_key",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudAccessResponse"
+                }
+              }
+            },
+            "description": "Rotated cloud key"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
+        ]
+      }
+    },
+    "/api/cloud/ingest": {
+      "post": {
+        "operationId": "ingest_cloud_payload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudSyncPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudIngestResult"
+                }
+              }
+            },
+            "description": "Ingest accepted"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid site key"
+          },
+          "403": {
+            "description": "Cloud ingest disabled"
+          }
+        },
+        "tags": [
+          "connection"
+        ]
+      }
+    },
+    "/api/cloud/sites": {
+      "get": {
+        "operationId": "list_cloud_sites",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CloudSiteResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Registered cloud sites"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
+        ]
+      },
+      "post": {
+        "operationId": "register_cloud_site",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCloudSiteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudSiteResponse"
+                }
+              }
+            },
+            "description": "Registered site"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
+        ]
+      }
+    },
+    "/api/cloud/sites/{site_id}": {
+      "delete": {
+        "operationId": "remove_cloud_site",
+        "parameters": [
+          {
+            "description": "Site ID",
+            "in": "path",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
+        ]
+      }
+    },
+    "/api/cloud/sites/{site_id}/snapshot": {
+      "get": {
+        "operationId": "get_cloud_site_snapshot",
+        "parameters": [
+          {
+            "description": "Site ID",
+            "in": "path",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/crate.json.JsonValue"
+                }
+              }
+            },
+            "description": "Latest site snapshot"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "connection"
         ]
       }
     },

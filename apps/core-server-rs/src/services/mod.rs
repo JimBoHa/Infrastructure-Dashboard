@@ -1,7 +1,8 @@
-pub mod analysis;
 pub mod alarm_engine;
+pub mod analysis;
 pub mod analytics_feeds;
 pub mod battery_model;
+pub mod cloud_sync;
 pub mod deployments;
 pub mod derived_sensors;
 pub mod emporia;

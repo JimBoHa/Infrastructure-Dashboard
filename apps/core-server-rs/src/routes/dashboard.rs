@@ -4,6 +4,7 @@ use axum::routing::get;
 use axum::{Json, Router};
 use chrono::Utc;
 use serde_json::Value as JsonValue;
+use std::collections::HashSet;
 
 use crate::auth::AuthUser;
 use crate::error::map_db_error;
@@ -141,6 +142,35 @@ async fn build_snapshot(
         connection: crate::routes::connection::connection_for_request(state, headers).await,
         trend_series: vec![],
     })
+}
+
+pub(crate) async fn build_cloud_sync_snapshot(
+    state: &AppState,
+) -> Result<DashboardSnapshot, (StatusCode, String)> {
+    let capabilities: HashSet<String> = [
+        "nodes.view",
+        "sensors.view",
+        "outputs.view",
+        "schedules.view",
+        "alerts.view",
+        "analytics.view",
+        "backups.view",
+        "users.manage",
+        "config.write",
+    ]
+    .iter()
+    .map(|value| value.to_string())
+    .collect();
+
+    let user = crate::auth::AuthenticatedUser {
+        id: crate::core_node::CORE_NODE_ID.to_string(),
+        email: "cloud-sync@localhost".to_string(),
+        role: "admin".to_string(),
+        capabilities,
+        source: "cloud-sync".to_string(),
+    };
+    let headers = HeaderMap::new();
+    build_snapshot(state, &headers, &user).await
 }
 
 #[utoipa::path(

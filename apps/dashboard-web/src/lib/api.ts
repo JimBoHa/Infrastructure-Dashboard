@@ -81,6 +81,12 @@ import type {
   TssePreviewRequestV1,
   TssePreviewResponseV1,
 } from "@/types/analysis";
+import type {
+  CloudAccessConfig,
+  CloudAccessUpdateRequest,
+  CloudSite,
+  RegisterCloudSiteRequest,
+} from "@/types/cloud";
 import { normalizeAnalyticsBundle } from "@/lib/analytics";
 import { fetchJson, fetchBinary, extractStatus, putJson, deleteJson, postJson } from "@/lib/http";
 import { decodeBinaryMetrics, readBinaryPoint } from "@/lib/binaryMetrics";
@@ -1002,6 +1008,108 @@ export async function fetchUsers(): Promise<DemoUser[]> {
 export async function fetchConnection(): Promise<DemoConnection> {
   const raw = await fetchJsonValidated("/api/connection", ConnectionSchema);
   return normalizeConnection(raw);
+}
+
+export async function fetchCloudAccessConfig(): Promise<CloudAccessConfig> {
+  const raw = await fetchJson<ApiRecord>("/api/cloud/access");
+  return {
+    role: asString(raw.role) ?? "local",
+    local_site_key: asString(raw.local_site_key) ?? null,
+    cloud_server_base_url: asString(raw.cloud_server_base_url) ?? null,
+    sync_interval_seconds: asNumber(raw.sync_interval_seconds),
+    sync_enabled: Boolean(raw.sync_enabled),
+    last_attempt_at: asString(raw.last_attempt_at) ?? null,
+    last_success_at: asString(raw.last_success_at) ?? null,
+    last_error: asString(raw.last_error) ?? null,
+    registered_site_count: asNumber(raw.registered_site_count),
+  };
+}
+
+export async function updateCloudAccessConfig(
+  payload: CloudAccessUpdateRequest,
+): Promise<CloudAccessConfig> {
+  const raw = await postJson<ApiRecord>("/api/cloud/access", payload);
+  return {
+    role: asString(raw.role) ?? "local",
+    local_site_key: asString(raw.local_site_key) ?? null,
+    cloud_server_base_url: asString(raw.cloud_server_base_url) ?? null,
+    sync_interval_seconds: asNumber(raw.sync_interval_seconds),
+    sync_enabled: Boolean(raw.sync_enabled),
+    last_attempt_at: asString(raw.last_attempt_at) ?? null,
+    last_success_at: asString(raw.last_success_at) ?? null,
+    last_error: asString(raw.last_error) ?? null,
+    registered_site_count: asNumber(raw.registered_site_count),
+  };
+}
+
+export async function rotateCloudAccessKey(): Promise<CloudAccessConfig> {
+  const raw = await postJson<ApiRecord>("/api/cloud/access/key/rotate", {});
+  return {
+    role: asString(raw.role) ?? "local",
+    local_site_key: asString(raw.local_site_key) ?? null,
+    cloud_server_base_url: asString(raw.cloud_server_base_url) ?? null,
+    sync_interval_seconds: asNumber(raw.sync_interval_seconds),
+    sync_enabled: Boolean(raw.sync_enabled),
+    last_attempt_at: asString(raw.last_attempt_at) ?? null,
+    last_success_at: asString(raw.last_success_at) ?? null,
+    last_error: asString(raw.last_error) ?? null,
+    registered_site_count: asNumber(raw.registered_site_count),
+  };
+}
+
+export async function fetchCloudSites(): Promise<CloudSite[]> {
+  const raw = await fetchJson<ApiRecord[]>("/api/cloud/sites");
+  return raw.map((site) => ({
+    site_id: asString(site.site_id) ?? "",
+    site_name: asString(site.site_name) ?? "Site",
+    key_fingerprint: asString(site.key_fingerprint) ?? "",
+    enabled: Boolean(site.enabled),
+    created_at: asString(site.created_at) ?? null,
+    updated_at: asString(site.updated_at) ?? null,
+    last_ingested_at: asString(site.last_ingested_at) ?? null,
+    last_payload_bytes:
+      site.last_payload_bytes == null ? null : asNumber(site.last_payload_bytes),
+    last_metrics_count:
+      site.last_metrics_count == null ? null : asNumber(site.last_metrics_count),
+  }));
+}
+
+export async function registerCloudSite(
+  payload: RegisterCloudSiteRequest,
+): Promise<CloudSite> {
+  const raw = await postJson<ApiRecord>("/api/cloud/sites", payload);
+  return {
+    site_id: asString(raw.site_id) ?? "",
+    site_name: asString(raw.site_name) ?? "Site",
+    key_fingerprint: asString(raw.key_fingerprint) ?? "",
+    enabled: Boolean(raw.enabled),
+    created_at: asString(raw.created_at) ?? null,
+    updated_at: asString(raw.updated_at) ?? null,
+    last_ingested_at: asString(raw.last_ingested_at) ?? null,
+    last_payload_bytes:
+      raw.last_payload_bytes == null ? null : asNumber(raw.last_payload_bytes),
+    last_metrics_count:
+      raw.last_metrics_count == null ? null : asNumber(raw.last_metrics_count),
+  };
+}
+
+export async function deleteCloudSite(siteId: string): Promise<void> {
+  await deleteJson(`/api/cloud/sites/${encodeURIComponent(siteId)}`);
+}
+
+export async function fetchCloudSiteSnapshot(
+  siteId: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    return await fetchJson<Record<string, unknown>>(
+      `/api/cloud/sites/${encodeURIComponent(siteId)}/snapshot`,
+    );
+  } catch (error) {
+    if (extractStatus(error) === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function fetchAdoptionCandidates(): Promise<DemoAdoptionCandidate[]> {

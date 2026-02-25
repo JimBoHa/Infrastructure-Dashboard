@@ -60,6 +60,7 @@ const NAV_GROUPS: SidebarNavGroup[] = [
       { label: "Setup Center", href: "/setup" },
       { label: "Deployment", href: "/deployment" },
       { label: "Connection", href: "/connection" },
+      { label: "Cloud Access", href: "/cloud-access" },
       { label: "Users", href: "/users" },
     ],
   },
@@ -147,6 +148,7 @@ const SidebarNav = () => {
     "/provisioning": null,
     "/deployment": null,
     "/connection": connection?.status ?? null,
+    "/cloud-access": null,
   };
 
   const batteryVoltageSensors = sensors.filter(
@@ -291,7 +293,7 @@ const SidebarNav = () => {
                 if (item.href === "/backups") return canViewBackups;
                 if (group.label === "Admin") {
                   if (item.href === "/users") return canManageUsers;
-                  if (item.href === "/setup" || item.href === "/deployment") return canConfigWrite;
+                  if (item.href === "/setup" || item.href === "/deployment" || item.href === "/cloud-access") return canConfigWrite;
                 }
                 return true;
               });

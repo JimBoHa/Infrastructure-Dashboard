@@ -18,7 +18,7 @@ This project board provides a high-level overview of the work to be done on the 
 | Epic | Status |
 | --- | --- |
 | [Core Infrastructure](#core-infrastructure) | Blocked: clean-host E2E validation (DT-59) |
-| [Core Server](#core-server) | In Progress (WS-2902 by-node endpoints; Pi 5 SPI bootstrap; external device integration CS-109; DHCP churn validation CS-105) |
+| [Core Server](#core-server) | In Progress (WS-2902 by-node endpoints; Pi 5 SPI bootstrap; Cloud Access replication CS-111; external device integration CS-109; DHCP churn validation CS-105) |
 | [Rust Core Server Migration](#rust-core-server-migration) | To Do (RCS-16..RCS-20 follow-ups: tracing + outputs refactor + no-Python guardrails) |
 | [Telemetry Ingest Sidecar](#telemetry-ingest-sidecar) | In Progress (TS-9 node-health split + core parity; Tier A pending) |
 | [Offline Telemetry Spool + Backfill Replay](#offline-telemetry-spool-backfill-replay) | Done (Tier A + hardware validated; Tier B OT-13) |
@@ -138,6 +138,7 @@ This project board provides a high-level overview of the work to be done on the 
 ### In Progress
 - 🚧 CS-77 WS-2902: expose status + rotate-token endpoints by node id
 - 🚧 CS-80 Pi 5 deploy-over-SSH enables SPI0 automatically (ADS1263)
+- 🚧 CS-111 Cloud Access key-based replication (local push + cloud site registry)
 
 ### Blocked
 - ⏸ CS-81 Validate Pi 5 deploy-over-SSH SPI bootstrap on real hardware

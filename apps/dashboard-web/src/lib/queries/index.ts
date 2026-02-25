@@ -10,6 +10,8 @@ import {
   fetchBackupRetentionConfig,
   fetchBackups,
   fetchConnection,
+  fetchCloudAccessConfig,
+  fetchCloudSites,
   fetchMetricsSeries,
   fetchNodes,
   fetchOutputs,
@@ -61,6 +63,8 @@ export const queryKeys = {
   alarmEvents: (limit = 100) => ["alarms", "history", limit] as const,
   users: ["users"] as const,
   connection: ["connection"] as const,
+  cloudAccess: ["cloud", "access"] as const,
+  cloudSites: ["cloud", "sites"] as const,
   adoptionCandidates: ["adoption", "candidates"] as const,
   backups: ["backups"] as const,
   backupRetention: ["backups", "retention"] as const,
@@ -170,6 +174,24 @@ export const useConnectionQuery = () =>
     queryFn: fetchConnection,
     staleTime: STALE_MEDIUM,
     refetchInterval: STALE_MEDIUM,
+  });
+
+export const useCloudAccessQuery = (options: QueryToggleOptions = {}) =>
+  useQuery({
+    queryKey: queryKeys.cloudAccess,
+    queryFn: fetchCloudAccessConfig,
+    staleTime: STALE_SHORT,
+    refetchInterval: STALE_MEDIUM,
+    enabled: options.enabled ?? true,
+  });
+
+export const useCloudSitesQuery = (options: QueryToggleOptions = {}) =>
+  useQuery({
+    queryKey: queryKeys.cloudSites,
+    queryFn: fetchCloudSites,
+    staleTime: STALE_SHORT,
+    refetchInterval: STALE_MEDIUM,
+    enabled: options.enabled ?? true,
   });
 
 export const useAdoptionCandidatesQuery = (options: { enabled?: boolean } = {}) =>

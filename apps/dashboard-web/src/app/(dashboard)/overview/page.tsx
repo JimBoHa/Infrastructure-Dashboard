@@ -26,6 +26,7 @@ export default function OverviewPage() {
     "Setup Center": "Credentials and integrations (Emporia, Forecast.Solar, weather).",
     Deployment: "Deploy and adopt new Pi nodes over SSH.",
     Connection: "Local/cloud endpoints and connectivity status.",
+    "Cloud Access": "Site key replication settings (local role) and site registry (cloud role).",
     Users: "User accounts and capabilities.",
     "Key services": "Core runtime services in the controller stack.",
     "Core server": "API + auth, config orchestration, storage, analytics composition.",
@@ -64,6 +65,7 @@ flowchart LR
     SETUP[Setup Center]
     DEP[Deployment]
     CONN[Connection]
+    CLOUD[Cloud Access]
     USERS[Users]
   end
 
@@ -94,6 +96,7 @@ flowchart LR
   click SETUP "/setup" "Credentials and integrations (Emporia, Forecast.Solar, weather)."
   click DEP "/deployment" "Deploy and adopt new Pi nodes over SSH."
   click CONN "/connection" "Local/cloud endpoints and connectivity status."
+  click CLOUD "/cloud-access" "Site key replication settings and cloud site registry."
   click USERS "/users" "User accounts and capabilities."
 
   click CORE "#" "API + auth, config orchestration, storage, analytics composition."
@@ -107,7 +110,7 @@ flowchart LR
 
   class OPS,ANA,ADM,SYS group;
   class OVR,NODES,MAP,SO,ALM,SCH,BK,AN_OVR,AN_TR,AN_COMP,AN_PWR box;
-  class SETUP,DEP,CONN,USERS box;
+  class SETUP,DEP,CONN,CLOUD,USERS box;
   class CORE,DB,MQTT,NAGENT box;
 `;
 

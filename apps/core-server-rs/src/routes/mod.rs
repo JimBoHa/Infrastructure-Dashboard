@@ -9,6 +9,7 @@ pub mod auth;
 pub mod backups;
 pub mod backups_exports;
 pub mod battery;
+pub mod cloud_access;
 pub mod connection;
 pub mod controller_config;
 pub mod dashboard;
@@ -19,8 +20,8 @@ pub mod display_profiles;
 pub mod external_devices;
 pub mod forecast;
 pub mod health;
-pub mod indicators;
 pub mod incidents;
+pub mod indicators;
 pub mod map;
 pub mod map_assets;
 pub mod map_offline;
@@ -72,6 +73,7 @@ pub fn router(state: AppState) -> Router {
                 .merge(backups::router())
                 .merge(backups_exports::router())
                 .merge(connection::router())
+                .merge(cloud_access::router())
                 .merge(controller_config::router())
                 .merge(battery::router())
                 .merge(dev_activity::router())

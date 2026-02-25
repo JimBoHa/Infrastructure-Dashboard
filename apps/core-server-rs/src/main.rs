@@ -141,6 +141,8 @@ async fn main() -> Result<()> {
         );
         external_devices.start(cancel.clone());
     }
+    services::cloud_sync::CloudSyncService::new(state.clone(), Duration::from_secs(15))
+        .start(cancel.clone());
 
     services::battery_model::BatteryEstimatorService::new(state.clone(), Duration::from_secs(30))
         .start(cancel.clone());
@@ -206,7 +208,11 @@ mod tests {
         let addr = listener.local_addr()?;
 
         let err = bind_listener(&addr.to_string()).await.unwrap_err();
-        if err.to_string().to_lowercase().contains("operation not permitted") {
+        if err
+            .to_string()
+            .to_lowercase()
+            .contains("operation not permitted")
+        {
             // Sandbox environments can block binding attempts; skip assertions in that case.
             return Ok(());
         }

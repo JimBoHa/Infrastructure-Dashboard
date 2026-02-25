@@ -127,6 +127,31 @@ This document provides a detailed list of all the tasks for the Infrastructure D
     - 2026-01-18: Added SPI0 bootstrap to the deploy job (`apps/core-server-rs/src/services/deployments/bootstrap.rs`) so clean Raspberry Pi OS Lite images do not require manual `dtparam=spi=on` edits for ADS1263.
   - **Status:** In Progress
 
+- **CS-111: Cloud Access key-based replication (local push + cloud site registry)**
+  - **Description:** Add a cloud replication surface so local controllers can generate/display a unique 32-character site key, configure a cloud endpoint, and push periodic snapshots to a cloud-role controller; cloud-role controllers must register site keys and isolate incoming site data by default.
+  - **Acceptance Criteria:**
+    - Core-server exposes authenticated local-role Cloud Access APIs:
+      - `GET /api/cloud/access`
+      - `POST /api/cloud/access`
+      - `POST /api/cloud/access/key/rotate`
+    - Core-server exposes cloud-role site registry + ingest APIs:
+      - `GET /api/cloud/sites`
+      - `POST /api/cloud/sites`
+      - `DELETE /api/cloud/sites/{site_id}`
+      - `GET /api/cloud/sites/{site_id}/snapshot`
+      - `POST /api/cloud/ingest` (site-key authenticated)
+    - Local-role background worker pushes snapshots every 5 minutes by default (operator-adjustable interval) and persists sync status/error/watermark.
+    - Site keys are validated and hashed for cloud-side lookup (no plaintext key registry at rest), with constant-time hash comparison for key matching.
+    - Cloud data is isolated per site under controller data root (`.../cloud/sites/<site_id>/...`).
+    - Dashboard-web includes a top-level **Cloud Access** tab and updates the Overview IA map to include this area.
+    - Local validation passes:
+      - `make ci-core-smoke`
+      - `make ci-web-smoke`
+      - `make ci-integrity-guardrail`
+  - **Notes / Run Log:**
+    - 2026-02-25: Implemented backend routes/services (`cloud_access`, `cloud_sync`), OpenAPI updates, and dashboard-web Cloud Access UI wiring. Local validation passed (`make ci-core-smoke`, `make ci-web-smoke`, `make ci-integrity-guardrail`).
+  - **Status:** In Progress
+
 - **CS-107: Battery model (estimated SOC) + power runway projection (Renogy + ADC-hat load)**
   - **Description:** Add controller-side battery intelligence: persistent SOC estimation (coulomb counting + resting anchoring) with capacity estimation and a conservative power runway projection that uses Forecast.Solar PV forecasts plus an hour-of-day load profile built from a selectable load power sensor (ADC-hat on node1).
   - **Acceptance Criteria:**
