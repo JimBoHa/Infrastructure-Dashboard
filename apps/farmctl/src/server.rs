@@ -342,7 +342,7 @@ fn run_farmctl(
     let needs_admin = config.profile == InstallProfile::Prod
         && euid != 0
         && matches!(action, "uninstall" | "install" | "upgrade" | "rollback")
-        && (action == "uninstall" || !running_as_service_user);
+        && (action == "install" || action == "uninstall" || !running_as_service_user);
     if needs_admin {
         return run_farmctl_authorized(&config.farmctl_path, args, config_path, env_overrides);
     }
