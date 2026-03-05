@@ -3,6 +3,7 @@ mod bundle;
 mod bundle_node_overlay;
 mod cli;
 mod config;
+mod config_cmd;
 mod constants;
 mod dev_activity;
 mod dev_db;
@@ -43,6 +44,7 @@ fn main() -> Result<()> {
         Commands::Status(args) => install::status(args, profile),
         Commands::Health(args) => install::health(args, profile),
         Commands::Diagnostics(args) => install::diagnostics(args, profile),
+        Commands::Config(args) => config_cmd::handle(args),
         Commands::Db(args) => dev_db::handle(args),
         Commands::DevActivity(args) => dev_activity::handle(args),
         Commands::Bundle(args) => bundle::bundle(args),

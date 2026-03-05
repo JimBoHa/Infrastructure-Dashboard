@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{
     extract::State,
     http::{header, HeaderMap, HeaderValue, StatusCode},
@@ -8,10 +8,12 @@ use axum::{
 };
 use serde_json::json;
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
+use tempfile::NamedTempFile;
 use tokio::net::TcpListener as TokioTcpListener;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -147,9 +149,18 @@ async fn post_config_handler(
     State(state): State<Arc<ApiState>>,
     Json(payload): Json<SetupConfigPatch>,
 ) -> impl IntoResponse {
-    match patch_config(&state.config_path, payload) {
+    match patch_config(&state.config_path, payload.clone()) {
         Ok(config) => Json(config).into_response(),
-        Err(err) => error_response(err),
+        Err(err) => {
+            if is_permission_denied(&err) {
+                match patch_config_privileged(&state, payload) {
+                    Ok(config) => Json(config).into_response(),
+                    Err(priv_err) => error_response(priv_err),
+                }
+            } else {
+                error_response(err)
+            }
+        }
     }
 }
 
@@ -328,6 +339,39 @@ fn load_config_for_state(state: &ApiState) -> Result<SetupConfig> {
     normalize_config(&mut config, state.profile_override)?;
     save_config(&state.config_path, &config)?;
     Ok(config)
+}
+
+fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<SetupConfig> {
+    let config = load_config(&state.config_path)?;
+    let mut temp = NamedTempFile::new()
+        .context("Failed to create temp file for config patch")?;
+    let payload = serde_json::to_string(&patch)?;
+    temp.write_all(payload.as_bytes())
+        .context("Failed to write config patch payload")?;
+    let temp_path = temp.path().to_path_buf();
+
+    let temp_path_display = temp_path.to_string_lossy();
+    let args = ["config", "patch", "--patch-file", temp_path_display.as_ref()];
+    let result = run_farmctl_authorized(
+        &config.farmctl_path,
+        &args,
+        &state.config_path,
+        &[],
+    )?;
+    if !result.ok {
+        anyhow::bail!(result.stdout);
+    }
+    let parsed: SetupConfig = serde_json::from_str(&result.stdout)
+        .context("Failed to parse patched config response")?;
+    Ok(parsed)
+}
+
+fn is_permission_denied(err: &anyhow::Error) -> bool {
+    err.chain().any(|cause| {
+        cause
+            .downcast_ref::<std::io::Error>()
+            .is_some_and(|io_err| io_err.kind() == std::io::ErrorKind::PermissionDenied)
+    })
 }
 
 fn run_farmctl(

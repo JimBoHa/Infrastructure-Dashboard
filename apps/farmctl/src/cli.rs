@@ -22,6 +22,7 @@ pub enum Commands {
     Status(StatusArgs),
     Health(HealthArgs),
     Diagnostics(DiagnosticsArgs),
+    Config(ConfigArgs),
     Db(DbArgs),
     DevActivity(DevActivityArgs),
     Bundle(BundleArgs),
@@ -84,6 +85,25 @@ pub struct DiagnosticsArgs {
     pub output: Option<PathBuf>,
     #[arg(long, default_value_t = false)]
     pub include_secrets: bool,
+}
+
+#[derive(Args)]
+pub struct ConfigArgs {
+    #[command(subcommand)]
+    pub command: ConfigCommand,
+}
+
+#[derive(Subcommand)]
+pub enum ConfigCommand {
+    Patch(ConfigPatchArgs),
+}
+
+#[derive(Args)]
+pub struct ConfigPatchArgs {
+    #[arg(long)]
+    pub config: Option<PathBuf>,
+    #[arg(long)]
+    pub patch_file: PathBuf,
 }
 
 #[derive(Args)]
