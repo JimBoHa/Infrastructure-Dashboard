@@ -45,6 +45,7 @@ struct ApiState {
     config_path: PathBuf,
     static_root: Option<PathBuf>,
     profile_override: Option<InstallProfile>,
+    farmctl_path: PathBuf,
 }
 
 pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) -> Result<()> {
@@ -54,10 +55,13 @@ pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) ->
             .ok()
             .map(PathBuf::from)
     });
+    let farmctl_path = std::env::current_exe()
+        .context("Failed to resolve farmctl binary path")?;
     let state = Arc::new(ApiState {
         config_path,
         static_root,
         profile_override,
+        farmctl_path,
     });
 
     let cors = CorsLayer::new()
@@ -363,7 +367,7 @@ fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<
     let temp_path_display = temp_path.to_string_lossy();
     let args = ["config", "patch", "--patch-file", temp_path_display.as_ref()];
     let result = run_farmctl_authorized(
-        &config.farmctl_path,
+        &state.farmctl_path.to_string_lossy(),
         &args,
         &state.config_path,
         &[],
@@ -387,7 +391,7 @@ fn write_config_privileged(state: &ApiState, config: &SetupConfig) -> Result<Set
     let temp_path_display = temp_path.to_string_lossy();
     let args = ["config", "write", "--config-file", temp_path_display.as_ref()];
     let result = run_farmctl_authorized(
-        &config.farmctl_path,
+        &state.farmctl_path.to_string_lossy(),
         &args,
         &state.config_path,
         &[],
