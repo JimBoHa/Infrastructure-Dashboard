@@ -19,8 +19,8 @@ use tower_http::cors::{Any, CorsLayer};
 
 use crate::cli::ServeArgs;
 use crate::config::{
-    env_flag, load_config, normalize_config, patch_config, resolve_config_path, save_config,
-    SetupConfig, SetupConfigPatch,
+    default_config, env_flag, load_config, normalize_config, patch_config, resolve_config_path,
+    save_config, SetupConfig, SetupConfigPatch,
 };
 use crate::launchd::{generate_plan, run_preflight};
 use crate::privileged::run_farmctl_authorized;
@@ -335,10 +335,20 @@ fn error_response(err: anyhow::Error) -> axum::response::Response {
 }
 
 fn load_config_for_state(state: &ApiState) -> Result<SetupConfig> {
-    let mut config = load_config(&state.config_path)?;
+    let mut config = match load_config(&state.config_path) {
+        Ok(config) => config,
+        Err(err) if is_permission_denied(&err) => {
+            let config = default_config()?;
+            return write_config_privileged(state, &config);
+        }
+        Err(err) => return Err(err),
+    };
     normalize_config(&mut config, state.profile_override)?;
-    save_config(&state.config_path, &config)?;
-    Ok(config)
+    match save_config(&state.config_path, &config) {
+        Ok(()) => Ok(config),
+        Err(err) if is_permission_denied(&err) => write_config_privileged(state, &config),
+        Err(err) => Err(err),
+    }
 }
 
 fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<SetupConfig> {
@@ -363,6 +373,30 @@ fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<
     }
     let parsed: SetupConfig = serde_json::from_str(&result.stdout)
         .context("Failed to parse patched config response")?;
+    Ok(parsed)
+}
+
+fn write_config_privileged(state: &ApiState, config: &SetupConfig) -> Result<SetupConfig> {
+    let mut temp =
+        NamedTempFile::new().context("Failed to create temp file for config write")?;
+    let payload = serde_json::to_string_pretty(config)?;
+    temp.write_all(payload.as_bytes())
+        .context("Failed to write config payload")?;
+    let temp_path = temp.path().to_path_buf();
+
+    let temp_path_display = temp_path.to_string_lossy();
+    let args = ["config", "write", "--config-file", temp_path_display.as_ref()];
+    let result = run_farmctl_authorized(
+        &config.farmctl_path,
+        &args,
+        &state.config_path,
+        &[],
+    )?;
+    if !result.ok {
+        anyhow::bail!(result.stdout);
+    }
+    let parsed: SetupConfig = serde_json::from_str(&result.stdout)
+        .context("Failed to parse config write response")?;
     Ok(parsed)
 }
 

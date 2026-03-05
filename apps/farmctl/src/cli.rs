@@ -96,6 +96,7 @@ pub struct ConfigArgs {
 #[derive(Subcommand)]
 pub enum ConfigCommand {
     Patch(ConfigPatchArgs),
+    Write(ConfigWriteArgs),
 }
 
 #[derive(Args)]
@@ -104,6 +105,14 @@ pub struct ConfigPatchArgs {
     pub config: Option<PathBuf>,
     #[arg(long)]
     pub patch_file: PathBuf,
+}
+
+#[derive(Args)]
+pub struct ConfigWriteArgs {
+    #[arg(long)]
+    pub config: Option<PathBuf>,
+    #[arg(long)]
+    pub config_file: PathBuf,
 }
 
 #[derive(Args)]
