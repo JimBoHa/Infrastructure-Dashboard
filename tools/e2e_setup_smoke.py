@@ -529,6 +529,19 @@ def main() -> int:
     except Exception as exc:
         error = str(exc)
     finally:
+        # Best-effort: detach any FarmDashboard DMGs rooted in this temp run.
+        try:
+            for image in test_hygiene.list_dmg_images(
+                substrings=test_hygiene.DEFAULT_DMG_SUBSTRINGS
+            ):
+                if not image.image_path.startswith(str(temp_root)):
+                    continue
+                target = image.dev_entry or image.mount_point or image.image_path
+                if target:
+                    subprocess.run(["hdiutil", "detach", target, "-quiet"], check=False)
+        except Exception:
+            pass
+
         cleanup_log: Path | None = None
         if not keep_temp and not success:
             # Best-effort: stop services so failed runs do not pollute the machine.

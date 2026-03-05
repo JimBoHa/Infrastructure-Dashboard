@@ -347,6 +347,7 @@ fn load_config_for_state(state: &ApiState) -> Result<SetupConfig> {
         }
         Err(err) => return Err(err),
     };
+    config.farmctl_path = state.farmctl_path.to_string_lossy().to_string();
     normalize_config(&mut config, state.profile_override)?;
     match save_config(&state.config_path, &config) {
         Ok(()) => Ok(config),
@@ -356,7 +357,6 @@ fn load_config_for_state(state: &ApiState) -> Result<SetupConfig> {
 }
 
 fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<SetupConfig> {
-    let config = load_config(&state.config_path)?;
     let mut temp = NamedTempFile::new()
         .context("Failed to create temp file for config patch")?;
     let payload = serde_json::to_string(&patch)?;
