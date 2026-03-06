@@ -521,6 +521,9 @@ fn build_manifest(bundle_root: &Path, version: &str) -> Result<BundleManifest> {
                 .path()
                 .strip_prefix(bundle_root)
                 .unwrap_or(entry.path());
+            if rel == Path::new(MANIFEST_NAME) {
+                continue;
+            }
             let digest = sha256_file(entry.path())?;
             let size = entry.metadata()?.len();
             files.push(BundleFile {
