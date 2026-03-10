@@ -52,7 +52,7 @@ function partsInTimeZone(date: Date, timeZone: string): ZonedDateParts | null {
     const year = Number(map.year);
     const month = Number(map.month);
     const day = Number(map.day);
-    const hour = Number(map.hour);
+    let hour = Number(map.hour);
     const minute = Number(map.minute);
     const second = Number(map.second);
     if (
@@ -65,6 +65,10 @@ function partsInTimeZone(date: Date, timeZone: string): ZonedDateParts | null {
     ) {
       return null;
     }
+    // Node 20 / ICU may format midnight as 24:00:00 for the same calendar day.
+    // Treat that as 00:00:00 so offset math stays on the correct civil date.
+    if (hour === 24) hour = 0;
+
     return {
       year,
       month,

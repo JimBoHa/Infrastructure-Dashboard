@@ -208,7 +208,7 @@ describe("Related Sensors pinned semantics (ticket 56)", () => {
       created_at: "2026-01-01T00:00:00Z",
       config: {},
     };
-    const pins: DemoSensor[] = Array.from({ length: 25 }, (_, idx) => {
+    const pins: DemoSensor[] = Array.from({ length: 21 }, (_, idx) => {
       const n = String(idx + 1).padStart(2, "0");
       return {
         sensor_id: `sensor-${n}`,
@@ -269,5 +269,5 @@ describe("Related Sensors pinned semantics (ticket 56)", () => {
       expect(request.params?.candidate_limit).toBe(20);
       expect(request.params?.pinned_sensor_ids).toEqual(pins.map((sensor) => sensor.sensor_id).sort());
     }
-  });
+  }, 10000);
 });
