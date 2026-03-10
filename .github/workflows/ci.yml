@@ -292,6 +292,15 @@ jobs:
           if ! command -v cmake >/dev/null 2>&1; then
             brew install cmake
           fi
+      - name: Ensure node-forwarder cross-build prerequisites
+        run: |
+          if ! command -v zig >/dev/null 2>&1; then
+            brew install zig
+          fi
+          if ! cargo zigbuild --version >/dev/null 2>&1; then
+            cargo install cargo-zigbuild --locked
+          fi
+          rustup target add aarch64-unknown-linux-musl
       - name: Run installer E2E (wizard-driven)
         run: FARM_E2E_KEEP_TEMP=1 make e2e-setup-smoke
       - name: Run production E2E smoke
