@@ -203,8 +203,8 @@ class DmgMount:
         self.dmg_path = dmg_path
         self.mount_dir = Path(tempfile.mkdtemp(prefix="farm_setup_dmg_"))
         last_error: str | None = None
-        delay_seconds = 0.25
-        for attempt in range(1, 6):
+        delay_seconds = 1.0
+        for attempt in range(1, 11):
             result = subprocess.run(
                 [
                     "hdiutil",
@@ -212,6 +212,7 @@ class DmgMount:
                     str(dmg_path),
                     "-nobrowse",
                     "-readonly",
+                    "-noverify",
                     "-mountpoint",
                     str(self.mount_dir),
                 ],
@@ -223,14 +224,16 @@ class DmgMount:
                 break
             last_error = (result.stderr.strip() or result.stdout.strip() or "unknown error").strip()
             subprocess.run(
-                ["hdiutil", "detach", str(self.mount_dir), "-quiet"],
+                ["hdiutil", "detach", str(self.mount_dir), "-force", "-quiet"],
                 capture_output=True,
                 text=True,
                 check=False,
             )
-            if attempt < 5:
+            shutil.rmtree(self.mount_dir, ignore_errors=True)
+            self.mount_dir.mkdir(parents=True, exist_ok=True)
+            if attempt < 10:
                 time.sleep(delay_seconds)
-                delay_seconds = min(delay_seconds * 2.0, 2.0)
+                delay_seconds = min(delay_seconds * 1.5, 5.0)
 
         if last_error:
             raise RuntimeError(f"Failed to mount DMG {dmg_path}: {last_error}")
