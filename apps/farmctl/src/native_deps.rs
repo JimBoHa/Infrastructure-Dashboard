@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use reqwest::blocking::Client;
+use std::env::consts::{ARCH, OS};
 use std::fs;
 use std::io;
 use std::os::unix::fs::PermissionsExt;
@@ -254,18 +255,25 @@ fn build_mosquitto(output: &Path, version: &str, temp_root: &Path) -> Result<()>
 }
 
 fn build_qdrant(output: &Path, version: &str, temp_root: &Path) -> Result<()> {
+    let tag = normalized_release_tag(version);
+    if let Some(asset_name) = qdrant_release_asset_name() {
+        match download_qdrant_release_binary(output, &tag, asset_name, temp_root) {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                eprintln!(
+                    "Failed to download prebuilt Qdrant asset {} for {}/{} ({}); falling back to source build",
+                    asset_name, OS, ARCH, err
+                );
+            }
+        }
+    }
+
     if which("cargo").is_none() {
         bail!("cargo is required to build qdrant (install Rust toolchain first)");
     }
     if which("git").is_none() {
         bail!("git is required to fetch qdrant source");
     }
-
-    let tag = if version.trim().starts_with('v') {
-        version.trim().to_string()
-    } else {
-        format!("v{}", version.trim())
-    };
 
     let src_root = temp_root.join("qdrant-src");
     if src_root.exists() {
@@ -312,6 +320,44 @@ fn build_qdrant(output: &Path, version: &str, temp_root: &Path) -> Result<()> {
     perms.set_mode(0o755);
     fs::set_permissions(&dest, perms)?;
 
+    Ok(())
+}
+
+fn normalized_release_tag(version: &str) -> String {
+    if version.trim().starts_with('v') {
+        version.trim().to_string()
+    } else {
+        format!("v{}", version.trim())
+    }
+}
+
+fn qdrant_release_asset_name() -> Option<&'static str> {
+    match (OS, ARCH) {
+        ("macos", "aarch64") => Some("qdrant-aarch64-apple-darwin.tar.gz"),
+        ("macos", "x86_64") => Some("qdrant-x86_64-apple-darwin.tar.gz"),
+        ("linux", "x86_64") => Some("qdrant-x86_64-unknown-linux-gnu.tar.gz"),
+        _ => None,
+    }
+}
+
+fn download_qdrant_release_binary(
+    output: &Path,
+    tag: &str,
+    asset_name: &str,
+    temp_root: &Path,
+) -> Result<()> {
+    let archive = temp_root.join(asset_name);
+    let url = format!("https://github.com/qdrant/qdrant/releases/download/{tag}/{asset_name}");
+    download_to(&url, &archive)?;
+
+    let bin_dir = output.join("bin");
+    fs::create_dir_all(&bin_dir)?;
+    let dest = bin_dir.join("qdrant");
+    unpack_tarball_binary(&archive, "qdrant", &dest)?;
+
+    let mut perms = fs::metadata(&dest)?.permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(&dest, perms)?;
     Ok(())
 }
 
@@ -496,6 +542,40 @@ fn extract_tarball(archive_path: &Path, temp_root: &Path, label: &str) -> Result
         Ok(roots.remove(0))
     } else {
         bail!("Unexpected source layout for {}", archive_path.display());
+    }
+}
+
+fn unpack_tarball_binary(archive_path: &Path, expected_name: &str, dest: &Path) -> Result<()> {
+    let tar_gz = fs::File::open(archive_path)?;
+    let decompressor = GzDecoder::new(tar_gz);
+    let mut archive = Archive::new(decompressor);
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let path = entry.path()?;
+        if path.file_name().and_then(|v| v.to_str()) != Some(expected_name) {
+            continue;
+        }
+        entry.unpack(dest)?;
+        return Ok(());
+    }
+    bail!(
+        "Expected {} inside archive {}",
+        expected_name,
+        archive_path.display()
+    )
+}
+
+#[cfg(test)]
+mod qdrant_release_tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_release_tags() {
+        assert_eq!(normalized_release_tag("1.9.7"), "v1.9.7");
+        assert_eq!(normalized_release_tag("v1.9.7"), "v1.9.7");
     }
 }
 
