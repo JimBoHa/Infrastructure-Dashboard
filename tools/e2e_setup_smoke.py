@@ -15,6 +15,16 @@ from urllib.parse import urlparse
 
 import test_hygiene
 
+INSTALLER_APP_NAMES = [
+    "Infrastructure Dashboard Installer.app",
+    "Farm Dashboard Installer.app",
+]
+
+BUNDLE_DMG_NAMES = [
+    "InfrastructureDashboardController-{version}.dmg",
+    "FarmDashboardController-{version}.dmg",
+]
+
 
 def run(cmd: list[str], env: dict[str, str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, capture_output=True, text=True, env=env)
@@ -140,6 +150,13 @@ def read_state(state_path: Path) -> dict:
     if not state_path.exists():
         return {}
     return json.loads(state_path.read_text())
+
+
+def first_existing_path(paths: list[Path]) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
 
 
 def write_last_state(
@@ -293,7 +310,7 @@ def main() -> int:
             )
             ensure_ok(native_build, "native_deps", artifacts_dir)
 
-        bundle_v1 = temp_root / "FarmDashboardController-0.0.0-test.dmg"
+        bundle_v1 = temp_root / "InfrastructureDashboardController-0.0.0-test.dmg"
         bundle_one = run(
             [
                 str(farmctl),
@@ -309,7 +326,7 @@ def main() -> int:
         )
         ensure_ok(bundle_one, "bundle_v1", artifacts_dir)
 
-        installer_dmg = temp_root / "FarmDashboardInstaller-0.0.0-test.dmg"
+        installer_dmg = temp_root / "InfrastructureDashboardInstaller-0.0.0-test.dmg"
         installer = run(
             [
                 str(farmctl),
@@ -333,7 +350,9 @@ def main() -> int:
             "true",
             "yes",
         }:
-            quarantine_value = f"0081;{int(time.time())};FarmDashboardInstaller;{installer_dmg.name}"
+            quarantine_value = (
+                f"0081;{int(time.time())};InfrastructureDashboardInstaller;{installer_dmg.name}"
+            )
             quarantine = run(
                 [
                     "xattr",
@@ -350,25 +369,32 @@ def main() -> int:
         # Wizard-driven install/upgrade/rollback against a clean temp root using the E2E profile.
         with DmgMount(installer_dmg) as mount:
             installer_root = mount.mount_dir
-            installer_app = installer_root / "Farm Dashboard Installer.app"
-            bundle_in_installer = (
-                installer_app
-                / "Contents/Resources/FarmDashboardController-0.0.0-test.dmg"
+            installer_app = first_existing_path(
+                [installer_root / app_name for app_name in INSTALLER_APP_NAMES]
+            )
+            if installer_app is None:
+                raise RuntimeError("Installer app missing in DMG")
+
+            bundle_in_installer = first_existing_path(
+                [
+                    installer_app / "Contents/Resources" / name.format(version="0.0.0-test")
+                    for name in BUNDLE_DMG_NAMES
+                ]
             )
             embedded_farmctl = installer_app / "Contents/Resources/farmctl"
 
-            if not installer_app.exists():
-                raise RuntimeError("Installer app missing in DMG")
-            if list(installer_root.glob("FarmDashboardController-*.dmg")):
+            if list(installer_root.glob("InfrastructureDashboardController-*.dmg")) or list(
+                installer_root.glob("FarmDashboardController-*.dmg")
+            ):
                 raise RuntimeError(
                     "Controller bundle DMG was visible at the installer DMG root (expected embedded inside the installer app)"
                 )
-            if not bundle_in_installer.exists():
+            if bundle_in_installer is None:
                 raise RuntimeError("Controller bundle missing in installer DMG")
             if not embedded_farmctl.exists():
                 raise RuntimeError("Embedded farmctl missing in installer app")
 
-            bundle_v2 = temp_root / "FarmDashboardController-0.0.1-test.dmg"
+            bundle_v2 = temp_root / "InfrastructureDashboardController-0.0.1-test.dmg"
             bundle_two = run(
                 [
                     str(farmctl),
