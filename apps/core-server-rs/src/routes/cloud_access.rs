@@ -360,7 +360,7 @@ pub(crate) async fn remove_cloud_site(
     tag = "connection",
     params(("site_id" = String, Path, description = "Site ID")),
     responses(
-        (status = 200, description = "Latest site snapshot", body = crate::json::JsonValue),
+        (status = 200, description = "Latest site snapshot", body = serde_json::Value),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Snapshot not found")

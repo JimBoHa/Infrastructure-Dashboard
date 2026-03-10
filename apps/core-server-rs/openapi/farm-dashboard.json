@@ -3245,6 +3245,14 @@
         ],
         "type": "object"
       },
+      "EventPolarityV1": {
+        "enum": [
+          "both",
+          "up",
+          "down"
+        ],
+        "type": "string"
+      },
       "ExternalDeviceCatalogResponse": {
         "properties": {
           "vendors": {
@@ -4944,6 +4952,81 @@
         ],
         "type": "object"
       },
+      "NodeStatusPayload": {
+        "properties": {
+          "cpu_percent": {
+            "type": "number"
+          },
+          "cpu_percent_per_core": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "heartbeats": {
+            "type": "number"
+          },
+          "memory_percent": {
+            "type": "number"
+          },
+          "memory_used_bytes": {
+            "type": "integer"
+          },
+          "mesh": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network_jitter_ms": {
+            "type": "number"
+          },
+          "network_latency_ms": {
+            "type": "number"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "outputs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "storage_used_bytes": {
+            "type": "integer"
+          },
+          "ts": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uptime_percent_24h": {
+            "type": "number"
+          },
+          "uptime_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "node_id",
+          "ts",
+          "uptime_seconds",
+          "cpu_percent",
+          "storage_used_bytes",
+          "memory_used_bytes",
+          "cpu_percent_per_core"
+        ],
+        "type": "object"
+      },
       "NodeUpdateRequest": {
         "properties": {
           "config": {
@@ -5431,6 +5514,93 @@
           "timestamp",
           "code",
           "output"
+        ],
+        "type": "object"
+      },
+      "PreviewEventOverlayParamsV1": {
+        "properties": {
+          "gap_max_buckets": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "max_events": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "min_separation_buckets": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "polarity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventPolarityV1"
+              }
+            ],
+            "nullable": true
+          },
+          "tolerance_seconds": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "z_threshold": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PreviewEventOverlaysV1": {
+        "properties": {
+          "candidate_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "focus_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "matched_candidate_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "matched_focus_event_ts_ms": {
+            "default": [],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tolerance_seconds": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "focus_event_ts_ms",
+          "candidate_event_ts_ms",
+          "matched_focus_event_ts_ms",
+          "matched_candidate_event_ts_ms"
         ],
         "type": "object"
       },
@@ -6359,6 +6529,41 @@
         ],
         "type": "string"
       },
+      "TelemetryPayload": {
+        "properties": {
+          "interval_seconds": {
+            "type": "number"
+          },
+          "quality": {
+            "default": 0,
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "rolling_average_seconds": {
+            "type": "number"
+          },
+          "sensor_id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "value"
+        ],
+        "type": "object"
+      },
       "TemplatesResponse": {
         "properties": {
           "templates": {
@@ -7031,6 +7236,12 @@
           "enabled"
         ],
         "type": "object"
+      },
+      "crate.routes.alarms.AlarmEventResponse": {
+        "$ref": "#/components/schemas/AlarmEventResponse"
+      },
+      "crate.services.alarm_engine.PreviewTargetResult": {
+        "$ref": "#/components/schemas/PreviewTargetResult"
       }
     },
     "securitySchemes": {
@@ -9194,9 +9405,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/crate.json.JsonValue"
-                }
+                "schema": {}
               }
             },
             "description": "Latest site snapshot"

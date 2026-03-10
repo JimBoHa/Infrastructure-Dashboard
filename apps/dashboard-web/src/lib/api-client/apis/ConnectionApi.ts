@@ -15,15 +15,53 @@
 
 import * as runtime from '../runtime';
 import type {
+  CloudAccessResponse,
+  CloudAccessUpdateRequest,
+  CloudIngestResult,
+  CloudSiteResponse,
+  CloudSyncPayload,
   ConnectionResponse,
   ConnectionUpdate,
+  RegisterCloudSiteRequest,
 } from '../models/index';
 import {
+    CloudAccessResponseFromJSON,
+    CloudAccessResponseToJSON,
+    CloudAccessUpdateRequestFromJSON,
+    CloudAccessUpdateRequestToJSON,
+    CloudIngestResultFromJSON,
+    CloudIngestResultToJSON,
+    CloudSiteResponseFromJSON,
+    CloudSiteResponseToJSON,
+    CloudSyncPayloadFromJSON,
+    CloudSyncPayloadToJSON,
     ConnectionResponseFromJSON,
     ConnectionResponseToJSON,
     ConnectionUpdateFromJSON,
     ConnectionUpdateToJSON,
+    RegisterCloudSiteRequestFromJSON,
+    RegisterCloudSiteRequestToJSON,
 } from '../models/index';
+
+export interface GetCloudSiteSnapshotRequest {
+    siteId: string;
+}
+
+export interface IngestCloudPayloadRequest {
+    cloudSyncPayload: CloudSyncPayload;
+}
+
+export interface RegisterCloudSiteOperationRequest {
+    registerCloudSiteRequest: RegisterCloudSiteRequest;
+}
+
+export interface RemoveCloudSiteRequest {
+    siteId: string;
+}
+
+export interface UpdateCloudAccessRequest {
+    cloudAccessUpdateRequest: CloudAccessUpdateRequest;
+}
 
 export interface UpdateConnectionRequest {
     connectionUpdate: ConnectionUpdate;
@@ -33,6 +71,104 @@ export interface UpdateConnectionRequest {
  * 
  */
 export class ConnectionApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getCloudAccess without sending the request
+     */
+    async getCloudAccessRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/access`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async getCloudAccessRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CloudAccessResponse>> {
+        const requestOptions = await this.getCloudAccessRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CloudAccessResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async getCloudAccess(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CloudAccessResponse> {
+        const response = await this.getCloudAccessRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getCloudSiteSnapshot without sending the request
+     */
+    async getCloudSiteSnapshotRequestOpts(requestParameters: GetCloudSiteSnapshotRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['siteId'] == null) {
+            throw new runtime.RequiredError(
+                'siteId',
+                'Required parameter "siteId" was null or undefined when calling getCloudSiteSnapshot().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/sites/{site_id}/snapshot`;
+        urlPath = urlPath.replace(`{${"site_id"}}`, encodeURIComponent(String(requestParameters['siteId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async getCloudSiteSnapshotRaw(requestParameters: GetCloudSiteSnapshotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const requestOptions = await this.getCloudSiteSnapshotRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     */
+    async getCloudSiteSnapshot(requestParameters: GetCloudSiteSnapshotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getCloudSiteSnapshotRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getConnection without sending the request
@@ -66,6 +202,293 @@ export class ConnectionApi extends runtime.BaseAPI {
      */
     async getConnection(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ConnectionResponse> {
         const response = await this.getConnectionRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for ingestCloudPayload without sending the request
+     */
+    async ingestCloudPayloadRequestOpts(requestParameters: IngestCloudPayloadRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['cloudSyncPayload'] == null) {
+            throw new runtime.RequiredError(
+                'cloudSyncPayload',
+                'Required parameter "cloudSyncPayload" was null or undefined when calling ingestCloudPayload().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/cloud/ingest`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: CloudSyncPayloadToJSON(requestParameters['cloudSyncPayload']),
+        };
+    }
+
+    /**
+     */
+    async ingestCloudPayloadRaw(requestParameters: IngestCloudPayloadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CloudIngestResult>> {
+        const requestOptions = await this.ingestCloudPayloadRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CloudIngestResultFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async ingestCloudPayload(requestParameters: IngestCloudPayloadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CloudIngestResult> {
+        const response = await this.ingestCloudPayloadRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listCloudSites without sending the request
+     */
+    async listCloudSitesRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/sites`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async listCloudSitesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CloudSiteResponse>>> {
+        const requestOptions = await this.listCloudSitesRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(CloudSiteResponseFromJSON));
+    }
+
+    /**
+     */
+    async listCloudSites(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CloudSiteResponse>> {
+        const response = await this.listCloudSitesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for registerCloudSite without sending the request
+     */
+    async registerCloudSiteRequestOpts(requestParameters: RegisterCloudSiteOperationRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['registerCloudSiteRequest'] == null) {
+            throw new runtime.RequiredError(
+                'registerCloudSiteRequest',
+                'Required parameter "registerCloudSiteRequest" was null or undefined when calling registerCloudSite().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/sites`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RegisterCloudSiteRequestToJSON(requestParameters['registerCloudSiteRequest']),
+        };
+    }
+
+    /**
+     */
+    async registerCloudSiteRaw(requestParameters: RegisterCloudSiteOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CloudSiteResponse>> {
+        const requestOptions = await this.registerCloudSiteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CloudSiteResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async registerCloudSite(requestParameters: RegisterCloudSiteOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CloudSiteResponse> {
+        const response = await this.registerCloudSiteRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for removeCloudSite without sending the request
+     */
+    async removeCloudSiteRequestOpts(requestParameters: RemoveCloudSiteRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['siteId'] == null) {
+            throw new runtime.RequiredError(
+                'siteId',
+                'Required parameter "siteId" was null or undefined when calling removeCloudSite().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/sites/{site_id}`;
+        urlPath = urlPath.replace(`{${"site_id"}}`, encodeURIComponent(String(requestParameters['siteId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async removeCloudSiteRaw(requestParameters: RemoveCloudSiteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.removeCloudSiteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     */
+    async removeCloudSite(requestParameters: RemoveCloudSiteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.removeCloudSiteRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for rotateCloudKey without sending the request
+     */
+    async rotateCloudKeyRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/access/key/rotate`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async rotateCloudKeyRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CloudAccessResponse>> {
+        const requestOptions = await this.rotateCloudKeyRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CloudAccessResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async rotateCloudKey(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CloudAccessResponse> {
+        const response = await this.rotateCloudKeyRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateCloudAccess without sending the request
+     */
+    async updateCloudAccessRequestOpts(requestParameters: UpdateCloudAccessRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['cloudAccessUpdateRequest'] == null) {
+            throw new runtime.RequiredError(
+                'cloudAccessUpdateRequest',
+                'Required parameter "cloudAccessUpdateRequest" was null or undefined when calling updateCloudAccess().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/cloud/access`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: CloudAccessUpdateRequestToJSON(requestParameters['cloudAccessUpdateRequest']),
+        };
+    }
+
+    /**
+     */
+    async updateCloudAccessRaw(requestParameters: UpdateCloudAccessRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CloudAccessResponse>> {
+        const requestOptions = await this.updateCloudAccessRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CloudAccessResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async updateCloudAccess(requestParameters: UpdateCloudAccessRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CloudAccessResponse> {
+        const response = await this.updateCloudAccessRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

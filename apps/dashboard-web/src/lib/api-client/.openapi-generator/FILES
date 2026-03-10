@@ -97,6 +97,12 @@ models/BatteryModelConfig.ts
 models/BulkAcknowledgeRequest.ts
 models/BulkAcknowledgeResponse.ts
 models/CapacityEstimationConfig.ts
+models/CloudAccessResponse.ts
+models/CloudAccessUpdateRequest.ts
+models/CloudIngestResult.ts
+models/CloudMetricPoint.ts
+models/CloudSiteResponse.ts
+models/CloudSyncPayload.ts
 models/ConnectionResponse.ts
 models/ConnectionUpdate.ts
 models/ControllerRuntimeConfigPatchRequest.ts
@@ -208,6 +214,7 @@ models/PvForecastCheckRequest.ts
 models/PvForecastCheckResponse.ts
 models/PvForecastConfigRequest.ts
 models/PvForecastConfigResponse.ts
+models/RegisterCloudSiteRequest.ts
 models/RenogyApplyResponse.ts
 models/RenogyBt2Mode.ts
 models/RenogyDesiredSettingsResponse.ts
