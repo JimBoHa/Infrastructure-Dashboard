@@ -5,6 +5,8 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::thread;
+use std::time::Duration;
 use std::{env, ffi::OsStr};
 use walkdir::WalkDir;
 
@@ -96,24 +98,11 @@ pub fn bundle(args: BundleArgs) -> Result<()> {
         fs::create_dir_all(parent)?;
     }
 
-    let status = Command::new("hdiutil")
-        .arg("create")
-        .arg("-volname")
-        .arg(format!(
-            "InfrastructureDashboardController-{}",
-            args.version
-        ))
-        .arg("-srcfolder")
-        .arg(&volume_root)
-        .arg("-ov")
-        .arg("-format")
-        .arg("UDZO")
-        .arg(&output)
-        .status()
-        .with_context(|| "Failed to run hdiutil create")?;
-    if !status.success() {
-        bail!("Failed to create DMG at {}", output.display());
-    }
+    create_dmg(
+        &format!("InfrastructureDashboardController-{}", args.version),
+        &volume_root,
+        &output,
+    )?;
     println!("Bundle created at {}", output.display());
     Ok(())
 }
@@ -243,26 +232,62 @@ pub fn installer(args: InstallerArgs) -> Result<()> {
     }
     let volname = env::var("FARM_DASHBOARD_INSTALLER_VOLNAME")
         .unwrap_or_else(|_| format!("InfrastructureDashboardInstaller-{}", args.version));
-    let status = Command::new("hdiutil")
-        .arg("create")
-        .arg("-volname")
-        .arg(volname)
-        .arg("-srcfolder")
-        .arg(&root)
-        .arg("-ov")
-        .arg("-format")
-        .arg("UDZO")
-        .arg(&args.output)
-        .status()
-        .with_context(|| "Failed to run hdiutil create")?;
-    if !status.success() {
-        bail!(
-            "Failed to create installer DMG at {}",
-            args.output.display()
-        );
-    }
+    create_dmg(&volname, &root, &args.output)?;
     println!("Installer DMG created at {}", args.output.display());
     Ok(())
+}
+
+fn create_dmg(volname: &str, srcfolder: &Path, output: &Path) -> Result<()> {
+    let mut last_error = None;
+    let mut delay = Duration::from_millis(250);
+
+    for attempt in 1..=3 {
+        if output.exists() {
+            let _ = fs::remove_file(output);
+        }
+
+        let result = Command::new("hdiutil")
+            .arg("create")
+            .arg("-volname")
+            .arg(volname)
+            .arg("-srcfolder")
+            .arg(srcfolder)
+            .arg("-ov")
+            .arg("-format")
+            .arg("UDZO")
+            .arg(output)
+            .output()
+            .with_context(|| "Failed to run hdiutil create")?;
+
+        if result.status.success() {
+            return Ok(());
+        }
+
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        let stdout = String::from_utf8_lossy(&result.stdout);
+        let detail = if stderr.trim().is_empty() {
+            let stdout = stdout.trim();
+            if stdout.is_empty() {
+                "unknown error"
+            } else {
+                stdout
+            }
+        } else {
+            stderr.trim()
+        };
+        last_error = Some(format!("attempt {attempt}: {detail}"));
+
+        if attempt < 3 {
+            thread::sleep(delay);
+            delay = std::cmp::min(delay * 2, Duration::from_secs(2));
+        }
+    }
+
+    bail!(
+        "Failed to create DMG at {} ({})",
+        output.display(),
+        last_error.unwrap_or_else(|| "unknown error".to_string())
+    )
 }
 
 fn build_farmctl_binary() -> Result<PathBuf> {

@@ -29,6 +29,12 @@ def ensure_ok(result: subprocess.CompletedProcess[str], label: str, artifacts_di
     failure_log.write_text(
         f"$ {' '.join(result.args)}\n\nSTDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}\n"
     )
+    print(f"{label} failed; captured command output follows.", file=sys.stderr)
+    print(f"$ {' '.join(result.args)}", file=sys.stderr)
+    print("\nSTDOUT:\n", file=sys.stderr)
+    print(result.stdout, file=sys.stderr)
+    print("\nSTDERR:\n", file=sys.stderr)
+    print(result.stderr, file=sys.stderr)
     raise RuntimeError(f"{label} failed (see {failure_log})")
 
 
