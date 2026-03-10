@@ -132,10 +132,10 @@ try {
   const page = await context.newPage();
 
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.waitForSelector("text=Production Setup Wizard", { timeout: 30_000 });
+  await page.waitForSelector("text=Setup Center", { timeout: 30_000 });
 
-  // Configure step
-  await page.click("#next-step"); // Welcome -> Configure
+  // Settings step
+  await page.click("#next-step"); // Welcome -> Settings
   await page.waitForSelector('input[name="bundle_path"]', { timeout: 10_000 });
 
   const bundlePathValue = await page.inputValue('input[name="bundle_path"]');
@@ -168,21 +168,11 @@ try {
     await page.click("#toggle-advanced"); // leave advanced hidden for minimal-prompt path
   }
 
-  // Preflight step
-  await page.click("#next-step"); // Configure -> Preflight
+  // Ready step
+  await page.click("#next-step"); // Settings -> Ready
   await page.waitForSelector("#run-preflight", { timeout: 10_000 });
   await page.click("#run-preflight");
   await page.waitForSelector("#preflight-results .check", { timeout: 30_000 });
-
-  // Plan step (also persists config via /api/plan)
-  await page.click("#next-step");
-  await page.waitForSelector("#generate-plan", { timeout: 10_000 });
-  await page.click("#generate-plan");
-  await page.waitForSelector("#plan-output pre", { timeout: 30_000 });
-  const hasPlanWarn = await page.isVisible("#plan-output .badge.warn");
-  if (hasPlanWarn) {
-    throw new Error("Launch plan showed warnings on a clean install (expected none)");
-  }
 
   // Operations step
   await page.click("#next-step");
@@ -194,13 +184,11 @@ try {
 
   // Upgrade (override bundle path)
   await page.click("#prev-step");
-  await page.click("#prev-step");
-  await page.click("#prev-step"); // back to Configure
+  await page.click("#prev-step"); // back to Settings
   await page.fill('input[name="bundle_path"]', upgradeBundlePath);
-  await page.click("#next-step"); // Preflight
-  await page.click("#next-step"); // Plan
-  await page.click("#generate-plan");
-  await page.click("#next-step"); // Operations
+  await page.click("#next-step"); // Ready
+  await page.waitForSelector("#preflight-results .check", { timeout: 30_000 });
+  await page.click("#next-step"); // Install
 
   await page.click("#run-upgrade");
   await expectVersion(expectedUpgradeVersion);
