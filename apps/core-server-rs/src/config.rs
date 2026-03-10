@@ -2,7 +2,20 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::path::{Component, Path, PathBuf};
 
-const DEFAULT_SETUP_CONFIG_PATH: &str = "/Users/Shared/FarmDashboard/setup/config.json";
+const DEFAULT_SETUP_CONFIG_PATH: &str = "/Users/Shared/InfrastructureDashboard/setup/config.json";
+const LEGACY_SETUP_CONFIG_PATH: &str = "/Users/Shared/FarmDashboard/setup/config.json";
+const DEFAULT_DATA_ROOT: &str = "/Users/Shared/InfrastructureDashboard";
+const LEGACY_DATA_ROOT: &str = "/Users/Shared/FarmDashboard";
+
+fn preferred_path(primary: &str, legacy: &str) -> PathBuf {
+    let primary_path = PathBuf::from(primary);
+    let legacy_path = PathBuf::from(legacy);
+    if primary_path.exists() || !legacy_path.exists() {
+        primary_path
+    } else {
+        legacy_path
+    }
+}
 
 pub(crate) fn setup_config_path() -> PathBuf {
     if let Ok(path) = std::env::var("CORE_SETUP_CONFIG_PATH") {
@@ -23,7 +36,7 @@ pub(crate) fn setup_config_path() -> PathBuf {
             return PathBuf::from(trimmed).join("config.json");
         }
     }
-    PathBuf::from(DEFAULT_SETUP_CONFIG_PATH)
+    preferred_path(DEFAULT_SETUP_CONFIG_PATH, LEGACY_SETUP_CONFIG_PATH)
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -261,7 +274,11 @@ impl CoreConfig {
                     .filter(|value| !value.is_empty())
                     .map(|value| value.to_string())
             })
-            .unwrap_or_else(|| "/Users/Shared/FarmDashboard".to_string());
+            .unwrap_or_else(|| {
+                preferred_path(DEFAULT_DATA_ROOT, LEGACY_DATA_ROOT)
+                    .display()
+                    .to_string()
+            });
         let data_root = PathBuf::from(data_root_value);
         if data_root.as_os_str().is_empty() {
             anyhow::bail!("CORE_DATA_ROOT resolved to an empty path");

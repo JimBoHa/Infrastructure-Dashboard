@@ -235,7 +235,7 @@ fn create_group(group: &str, gid: u32) -> Result<()> {
         "-create",
         &format!("/Groups/{group}"),
         "RealName",
-        "Farm Dashboard Service",
+        "Infrastructure Dashboard Service",
     ])?;
     run_dscl(&[".", "-create", &format!("/Groups/{group}"), "Password", "*"])?;
     Ok(())
@@ -276,7 +276,7 @@ fn create_user(user: &str, uid: u32, group: &str, gid: u32) -> Result<()> {
         "-create",
         &format!("/Users/{user}"),
         "RealName",
-        "Farm Dashboard Service",
+        "Infrastructure Dashboard Service",
     ])?;
     run_dscl(&[".", "-create", &format!("/Users/{user}"), "Password", "*"])?;
 

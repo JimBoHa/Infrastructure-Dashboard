@@ -1,4 +1,5 @@
-const TOKEN_KEY = "farmdashboard.auth.token";
+const TOKEN_KEY = "infrastructuredashboard.auth.token";
+const LEGACY_TOKEN_KEY = "farmdashboard.auth.token";
 
 export function getAuthToken(): string | null {
   if (typeof window !== "undefined") {
@@ -8,11 +9,21 @@ export function getAuthToken(): string | null {
         return sessionToken;
       }
 
+      const legacySessionToken = window.sessionStorage.getItem(LEGACY_TOKEN_KEY);
+      if (legacySessionToken) {
+        window.sessionStorage.setItem(TOKEN_KEY, legacySessionToken);
+        window.sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+        return legacySessionToken;
+      }
+
       // Historical cleanup: older builds persisted tokens in localStorage.
       // The production dashboard requires login per browser session, so we drop
       // any persisted tokens and force a fresh sign-in.
       if (window.localStorage.getItem(TOKEN_KEY)) {
         window.localStorage.removeItem(TOKEN_KEY);
+      }
+      if (window.localStorage.getItem(LEGACY_TOKEN_KEY)) {
+        window.localStorage.removeItem(LEGACY_TOKEN_KEY);
       }
 
       return process.env.NEXT_PUBLIC_AUTH_TOKEN ?? null;
@@ -30,6 +41,8 @@ export function setAuthToken(token: string) {
     if (!trimmed) return;
     window.sessionStorage.setItem(TOKEN_KEY, trimmed);
     window.localStorage.removeItem(TOKEN_KEY);
+    window.sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
   } catch {
     // ignore
   }
@@ -40,6 +53,8 @@ export function clearAuthToken() {
   try {
     window.localStorage.removeItem(TOKEN_KEY);
     window.sessionStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+    window.sessionStorage.removeItem(LEGACY_TOKEN_KEY);
   } catch {
     // ignore
   }

@@ -30,16 +30,30 @@ private final class Logger {
 
 private func loadLauncherConfig() -> LauncherConfig {
     let info = Bundle.main.infoDictionary ?? [:]
-    let host = (info["FarmSetupHost"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-    let port = info["FarmSetupPort"] as? Int
-    let configPath = (info["FarmSetupConfigPath"] as? String)?
+    let host = ((info["InfrastructureSetupHost"] as? String)
+        ?? (info["FarmSetupHost"] as? String))?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    let port = (info["InfrastructureSetupPort"] as? Int)
+        ?? (info["FarmSetupPort"] as? Int)
+    let configPath = ((info["InfrastructureSetupConfigPath"] as? String)
+        ?? (info["FarmSetupConfigPath"] as? String))?
         .trimmingCharacters(in: .whitespacesAndNewlines)
 
     return LauncherConfig(
         host: (host?.isEmpty == false) ? host! : "127.0.0.1",
         port: port ?? 8800,
-        configPath: (configPath?.isEmpty == false) ? configPath! : "/Users/Shared/FarmDashboard/setup/config.json"
+        configPath: (configPath?.isEmpty == false) ? configPath! : defaultConfigPath()
     )
+}
+
+private func defaultConfigPath() -> String {
+    let fm = FileManager.default
+    let preferred = "/Users/Shared/InfrastructureDashboard/setup/config.json"
+    let legacy = "/Users/Shared/FarmDashboard/setup/config.json"
+    if fm.fileExists(atPath: preferred) || !fm.fileExists(atPath: legacy) {
+        return preferred
+    }
+    return legacy
 }
 
 private func httpOk(_ url: URL, timeout: TimeInterval = 0.6) -> Bool {
@@ -62,10 +76,14 @@ private func httpOk(_ url: URL, timeout: TimeInterval = 0.6) -> Bool {
 private func findEmbeddedControllerDmg(in resources: URL) throws -> URL {
     let fm = FileManager.default
     let entries = try fm.contentsOfDirectory(at: resources, includingPropertiesForKeys: nil)
-    if let match = entries.first(where: { $0.pathExtension == "dmg" && $0.lastPathComponent.contains("FarmDashboardController") }) {
+    if let match = entries.first(where: {
+        $0.pathExtension == "dmg"
+            && ($0.lastPathComponent.contains("InfrastructureDashboardController")
+                || $0.lastPathComponent.contains("FarmDashboardController"))
+    }) {
         return match
     }
-    throw NSError(domain: "FarmDashboardInstaller", code: 2, userInfo: [
+    throw NSError(domain: "InfrastructureDashboardInstaller", code: 2, userInfo: [
         NSLocalizedDescriptionKey: "Missing embedded controller DMG in app resources"
     ])
 }
@@ -128,7 +146,7 @@ private func launchWizard(
 private func main() {
     let config = loadLauncherConfig()
     let fm = FileManager.default
-    let runtimeRoot = fm.temporaryDirectory.appendingPathComponent("farm_dashboard_installer", isDirectory: true)
+    let runtimeRoot = fm.temporaryDirectory.appendingPathComponent("infrastructure_dashboard_installer", isDirectory: true)
     try? fm.createDirectory(at: runtimeRoot, withIntermediateDirectories: true)
     let logger = Logger(logPath: runtimeRoot.appendingPathComponent("launcher.log"))
 
@@ -182,7 +200,7 @@ private func main() {
     } catch {
         logger.log("error: \(error.localizedDescription)")
         let alert = NSAlert()
-        alert.messageText = "Farm Dashboard Installer failed to start"
+        alert.messageText = "Infrastructure Dashboard Installer failed to start"
         alert.informativeText = "See installer logs at: \(runtimeRoot.path)/launcher.log"
         alert.alertStyle = .critical
         alert.runModal()
@@ -203,7 +221,7 @@ private func main() {
         logger.log("wizard did not become healthy within timeout")
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = "Farm Dashboard Installer started but the wizard did not become ready"
+            alert.messageText = "Infrastructure Dashboard Installer started but the wizard did not become ready"
             alert.informativeText = "See installer logs at: \(runtimeRoot.path)/launcher.log"
             alert.alertStyle = .warning
             alert.runModal()

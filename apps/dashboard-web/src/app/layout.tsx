@@ -20,7 +20,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Farm Dashboard",
+  title: "Infrastructure Dashboard",
   description: "Monitor distributed nodes, sensors, and schedules.",
 };
 

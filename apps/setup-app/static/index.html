@@ -3,61 +3,68 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Farm Dashboard Setup</title>
+    <title>Infrastructure Dashboard Setup</title>
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
     <div class="backdrop"></div>
     <div class="shell">
       <header class="hero">
-        <div>
-          <p class="eyebrow">Farm Dashboard</p>
-          <h1>Production Setup Wizard</h1>
+        <div class="hero-copy">
+          <p class="eyebrow">Infrastructure Dashboard</p>
+          <h1>Setup Center</h1>
           <p class="subtitle">
-            Install the native stack with launchd services, guided checks, and a
-            repeatable configuration plan.
+            Install the controller with recommended settings, verify the Mac is ready,
+            and launch the dashboard with as little manual setup as possible.
           </p>
+          <div class="callout">
+            <strong>Support note:</strong> Detailed setup and diagnostics output is saved
+            automatically for support and review. The installer only shows the next action you need.
+          </div>
         </div>
         <div class="steps" id="step-indicator">
           <span class="step active" data-step="0">Welcome</span>
-          <span class="step" data-step="1">Configure</span>
-          <span class="step" data-step="2">Preflight</span>
-          <span class="step" data-step="3">Plan</span>
-          <span class="step" data-step="4">Operations</span>
+          <span class="step" data-step="1">Settings</span>
+          <span class="step" data-step="2">Ready</span>
+          <span class="step" data-step="3">Install</span>
         </div>
       </header>
 
       <main class="panels">
         <section class="panel active" data-step="0">
-          <h2>Start with a clean plan</h2>
-          <p>
-            This setup app builds a native service stack (LaunchDaemons) for the
-            controller core server (serving both the dashboard UI and `/api/*`),
-            telemetry sidecar, and native DB/MQTT/Redis services. You'll validate
-            prerequisites, capture configuration, and generate a launch plan.
-          </p>
-          <div class="callout">
-            <strong>Tip:</strong> You can re-run this wizard anytime. It reloads
-            your last saved configuration and updates the service plan.
+          <div class="panel-header">
+            <div>
+              <h2>Install with recommended settings</h2>
+              <p class="muted">
+                This follows a UniFi-style flow: detect the bundle, keep the defaults,
+                and only open advanced fields if your environment needs something custom.
+              </p>
+            </div>
           </div>
+          <div class="summary-grid" id="welcome-summary"></div>
         </section>
 
         <section class="panel" data-step="1">
           <div class="panel-header">
             <div>
-              <h2>Configuration</h2>
-              <p class="muted">Bundle and installer paths are auto-detected. Advanced settings stay hidden unless you need them.</p>
+              <h2>Recommended settings</h2>
+              <p class="muted">
+                Most installs should keep these defaults. Advanced paths and ports stay hidden unless needed.
+              </p>
             </div>
             <button class="btn ghost" id="toggle-advanced">Show advanced</button>
           </div>
+
+          <div class="summary-grid compact" id="settings-summary"></div>
+
           <form id="config-form" autocomplete="off" data-advanced="false">
             <div class="grid">
               <label class="full">
-                Controller bundle DMG path
+                Installer bundle
                 <input type="text" name="bundle_path" />
               </label>
               <label class="full">
-                MQTT host (controller LAN IP for nodes)
+                Controller network address
                 <div class="input-row">
                   <input type="text" name="mqtt_host" />
                   <button class="btn ghost small" type="button" id="detect-mqtt-host">
@@ -66,18 +73,19 @@
                 </div>
               </label>
               <label>
-                Install root
+                App files
                 <input type="text" name="install_root" />
               </label>
               <label>
-                Data root
+                Data storage
                 <input type="text" name="data_root" />
               </label>
               <label>
-                Backup path
+                Backups
                 <input type="text" name="backup_root" />
               </label>
             </div>
+
             <div class="grid advanced-grid">
               <label class="advanced-field">
                 Logs root
@@ -121,39 +129,39 @@
 
         <section class="panel" data-step="2">
           <div class="panel-header">
-            <h2>Preflight checks</h2>
-            <button class="btn" id="run-preflight">Run checks</button>
+            <div>
+              <h2>Readiness check</h2>
+              <p class="muted">
+                Run one check to confirm the Mac, ports, bundle, and writable locations are ready.
+              </p>
+            </div>
+            <button class="btn" id="run-preflight">Check this Mac</button>
           </div>
+          <div class="summary-grid compact" id="ready-summary"></div>
           <div class="checklist" id="preflight-results">
-            <p class="muted">Run checks to validate your configuration and environment.</p>
+            <p class="muted">Run the readiness check to see what still needs attention.</p>
           </div>
         </section>
 
         <section class="panel" data-step="3">
           <div class="panel-header">
-            <h2>Launch plan</h2>
-            <button class="btn" id="generate-plan">Generate plan</button>
-          </div>
-          <div class="plan" id="plan-output">
-            <p class="muted">Generate the plan to see launchd files and commands.</p>
-          </div>
-        </section>
-
-        <section class="panel" data-step="4">
-          <div class="panel-header">
-            <h2>Install & operations</h2>
+            <div>
+              <h2>Install Infrastructure Dashboard</h2>
+              <p class="muted">
+                Install uses the saved settings above, starts the managed services, and then checks health.
+              </p>
+            </div>
             <div class="panel-actions">
-              <button class="btn" id="run-health">Health check</button>
-              <button class="btn" id="export-diagnostics">Export diagnostics</button>
+              <button class="btn" id="run-health">Verify services</button>
             </div>
           </div>
           <div class="install-actions">
-            <button class="btn primary" id="run-install">Install</button>
-            <button class="btn" id="run-upgrade">Upgrade</button>
-            <button class="btn ghost" id="run-rollback">Rollback</button>
+            <button class="btn primary" id="run-install">Install now</button>
+            <button class="btn" id="run-upgrade">Upgrade existing install</button>
+            <button class="btn ghost" id="run-rollback">Roll back last version</button>
           </div>
           <div class="plan" id="install-output">
-            <p class="muted">Run install/upgrade to apply bundle assets and launchd services.</p>
+            <p class="muted">When you run an install action, Setup Center will show a simple status update here.</p>
           </div>
         </section>
       </main>

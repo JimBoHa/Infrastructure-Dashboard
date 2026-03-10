@@ -51,10 +51,10 @@ export default function DashboardHeader() {
 
           <Link href="/nodes" className="flex items-center gap-2">
             <span className="inline-flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-sm font-semibold text-white">
-              FD
+              ID
             </span>
             <span className="hidden text-sm font-semibold text-card-foreground sm:inline">
-              Farm Dashboard
+              Infrastructure Dashboard
             </span>
           </Link>
         </div>

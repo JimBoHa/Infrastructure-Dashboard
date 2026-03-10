@@ -15,10 +15,10 @@ const DEFAULT_INDEX: &str = r#"<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Farm Dashboard</title>
+    <title>Infrastructure Dashboard</title>
   </head>
   <body style="font-family: system-ui; padding: 24px">
-    <h1>Farm Dashboard (Rust core-server)</h1>
+    <h1>Infrastructure Dashboard (Rust core-server)</h1>
     <p>This is a placeholder static root. Provide <code>--static-root</code> to serve the real dashboard build.</p>
   </body>
 </html>

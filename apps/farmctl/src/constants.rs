@@ -1,9 +1,14 @@
-pub const DEFAULT_STATE_DIR: &str = "/Users/Shared/FarmDashboard/setup";
+pub const PRODUCT_INSTALLER_NAME: &str = "Infrastructure Dashboard Installer";
+pub const DEFAULT_STATE_DIR: &str = "/Users/Shared/InfrastructureDashboard/setup";
+pub const LEGACY_STATE_DIR: &str = "/Users/Shared/FarmDashboard/setup";
+pub const DEFAULT_DATA_ROOT: &str = "/Users/Shared/InfrastructureDashboard";
+pub const LEGACY_DATA_ROOT: &str = "/Users/Shared/FarmDashboard";
 pub const DEFAULT_SETUP_HOST: &str = "127.0.0.1";
 pub const DEFAULT_SETUP_PORT: u16 = 8800;
 pub const DEFAULT_REDIS_PORT: u16 = 6379;
 pub const DEFAULT_QDRANT_PORT: u16 = 6333;
-pub const BUNDLE_ROOT_DIR: &str = "FarmDashboardController";
+pub const BUNDLE_ROOT_DIR: &str = "InfrastructureDashboardController";
+pub const LEGACY_BUNDLE_ROOT_DIR: &str = "FarmDashboardController";
 pub const MANIFEST_NAME: &str = "manifest.json";
 pub const STATE_FILE: &str = "state.json";
 pub const MANIFEST_VERSION: u32 = 2;

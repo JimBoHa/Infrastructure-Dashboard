@@ -3,20 +3,22 @@ const indicators = Array.from(document.querySelectorAll(".step"));
 const prevBtn = document.getElementById("prev-step");
 const nextBtn = document.getElementById("next-step");
 const preflightBtn = document.getElementById("run-preflight");
-const planBtn = document.getElementById("generate-plan");
 const preflightResults = document.getElementById("preflight-results");
-const planOutput = document.getElementById("plan-output");
+const readySummary = document.getElementById("ready-summary");
+const welcomeSummary = document.getElementById("welcome-summary");
+const settingsSummary = document.getElementById("settings-summary");
 const installOutput = document.getElementById("install-output");
 const form = document.getElementById("config-form");
 const installBtn = document.getElementById("run-install");
 const upgradeBtn = document.getElementById("run-upgrade");
 const rollbackBtn = document.getElementById("run-rollback");
 const healthBtn = document.getElementById("run-health");
-const diagnosticsBtn = document.getElementById("export-diagnostics");
 const toggleAdvancedBtn = document.getElementById("toggle-advanced");
 const mqttDetectBtn = document.getElementById("detect-mqtt-host");
 
 let currentStep = 0;
+let loadedConfig = null;
+let preflightRequested = false;
 
 const SAVE_FIELDS = new Set([
   "bundle_path",
@@ -34,14 +36,14 @@ const SAVE_FIELDS = new Set([
 
 const showStep = (index) => {
   currentStep = Math.max(0, Math.min(index, panels.length - 1));
-  panels.forEach((panel, idx) => {
-    panel.classList.toggle("active", idx === currentStep);
-  });
-  indicators.forEach((indicator, idx) => {
-    indicator.classList.toggle("active", idx === currentStep);
-  });
+  panels.forEach((panel, idx) => panel.classList.toggle("active", idx === currentStep));
+  indicators.forEach((indicator, idx) => indicator.classList.toggle("active", idx === currentStep));
   prevBtn.disabled = currentStep === 0;
-  nextBtn.textContent = currentStep === panels.length - 1 ? "Done" : "Next";
+  nextBtn.textContent = currentStep === panels.length - 1 ? "Finish" : "Next";
+
+  if (currentStep === 2 && !preflightRequested) {
+    void runPreflight();
+  }
 };
 
 const formPayload = (allowedFields = null) => {
@@ -50,9 +52,7 @@ const formPayload = (allowedFields = null) => {
   for (const [key, value] of data.entries()) {
     if (allowedFields && !allowedFields.has(key)) continue;
     if (value === "") continue;
-    if (
-      ["core_port", "mqtt_port", "redis_port", "backup_retention_days"].includes(key)
-    ) {
+    if (["core_port", "mqtt_port", "redis_port", "backup_retention_days"].includes(key)) {
       payload[key] = Number(value);
     } else {
       payload[key] = value;
@@ -67,7 +67,9 @@ const loadConfig = async () => {
   if (!response.ok) {
     throw new Error(data?.error || "Failed to load config");
   }
+  loadedConfig = data;
   populateForm(data);
+  renderConfigSummaries(data);
   return data;
 };
 
@@ -91,171 +93,334 @@ const saveConfig = async () => {
   if (!response.ok) {
     throw new Error(data?.error || "Failed to save config");
   }
+  loadedConfig = data;
   populateForm(data);
+  renderConfigSummaries(data);
   return data;
 };
 
-const renderChecks = (checks) => {
-  preflightResults.innerHTML = "";
-  checks.forEach((check) => {
-    const row = document.createElement("div");
-    row.className = "check";
-    row.innerHTML = `
-      <div>
-        <strong>${check.id.replace(/-/g, " ")}</strong>
-        <span>${check.message}</span>
-      </div>
-      <span class="badge ${check.status}">${check.status}</span>
-    `;
-    preflightResults.appendChild(row);
-  });
+const summaryCard = (title, value, note = "") => `
+  <div class="summary-card">
+    <span class="summary-label">${title}</span>
+    <strong>${value || "Not set"}</strong>
+    ${note ? `<span class="summary-note">${note}</span>` : ""}
+  </div>
+`;
+
+const renderConfigSummaries = (config) => {
+  welcomeSummary.innerHTML = [
+    summaryCard(
+      "Installer bundle",
+      config.bundle_path || "Auto-detecting from the installer app",
+      "If this field is filled in, Setup Center is ready to use the embedded controller package.",
+    ),
+    summaryCard(
+      "Controller address",
+      config.mqtt_host || "127.0.0.1",
+      "Nodes on your network will use this address to reach the controller.",
+    ),
+    summaryCard(
+      "App + services",
+      config.install_root,
+      "Infrastructure Dashboard binaries and managed services live here.",
+    ),
+    summaryCard(
+      "Data + backups",
+      config.data_root,
+      `Backups save to ${config.backup_root || "the default backup folder"}.`,
+    ),
+  ].join("");
+
+  settingsSummary.innerHTML = [
+    summaryCard("App files", config.install_root),
+    summaryCard("Data storage", config.data_root),
+    summaryCard("Backups", config.backup_root),
+    summaryCard("Controller URL", `http://127.0.0.1:${config.core_port || 8000}/`),
+  ].join("");
 };
 
-const renderPlan = (plan) => {
-  const warnings = plan.warnings?.length
-    ? `<div class="check"><div><strong>Warnings</strong><span>${plan.warnings.join(
-        " | "
-      )}</span></div><span class="badge warn">warn</span></div>`
-    : "";
-  const commands = plan.commands?.length ? plan.commands.join("\n") : "No commands generated.";
-  const loadCommands = plan.load_commands?.length
-    ? plan.load_commands.join("\n")
-    : "No launchctl commands generated.";
+const prettyCheckName = (id) =>
+  id
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  planOutput.innerHTML = `
-    ${warnings}
-    <div class="check">
-      <div>
-        <strong>Staging directory</strong>
-        <span>${plan.staging_dir}</span>
-      </div>
-      <span class="badge ok">ready</span>
-    </div>
-    <pre>${commands}</pre>
-    <pre>${loadCommands}</pre>
-  `;
-};
-
-const renderCommandResults = (title, results = []) => {
-  if (!installOutput) return;
-  const rows =
-    results.length === 0
-      ? `<p class="muted">No output captured.</p>`
-      : results
-          .map(
-            (item) => `
-      <div class="check">
-        <div>
-          <strong>${item.command}</strong>
-          <span>${item.stdout || item.stderr || "No output"}</span>
+const renderChecks = (checks = []) => {
+  if (!checks.length) {
+    preflightResults.innerHTML = "<p class=\"muted\">No readiness data returned.</p>";
+    return;
+  }
+  preflightResults.innerHTML = checks
+    .map(
+      (check) => `
+        <div class="check">
+          <div>
+            <strong>${prettyCheckName(check.id)}</strong>
+            <span>${check.message}</span>
+          </div>
+          <span class="badge ${check.status}">${check.status === "error" ? "fix" : check.status}</span>
         </div>
-        <span class="badge ${item.ok ? "ok" : "error"}">${item.ok ? "ok" : "error"}</span>
-      </div>
-    `
-          )
-          .join("");
+      `,
+    )
+    .join("");
+};
+
+const renderReadySummary = (summary) => {
+  if (!summary) {
+    readySummary.innerHTML = "";
+    return;
+  }
+  readySummary.innerHTML = [
+    summaryCard(
+      "Ready checks",
+      String(summary.ready ?? 0),
+      "Checks that passed with no action needed.",
+    ),
+    summaryCard(
+      "Warnings",
+      String(summary.warnings ?? 0),
+      "Warnings do not block install, but they are worth reviewing.",
+    ),
+    summaryCard(
+      "Needs attention",
+      String(summary.blocked ?? 0),
+      summary.blocked > 0
+        ? "Fix these items before running the installer."
+        : "No blocking issues were found.",
+    ),
+    summaryCard(
+      "Install status",
+      summary.install_ready ? "Ready" : "Action needed",
+      "Detailed logs are written automatically for support.",
+    ),
+  ].join("");
+};
+
+const renderInstallState = ({
+  title,
+  tone = "ok",
+  message,
+  detail = "",
+  actionLabel = "",
+  actionHref = "",
+}) => {
   installOutput.innerHTML = `
-    <div class="check">
-      <div>
-        <strong>${title}</strong>
-        <span>Latest installer activity.</span>
+    <div class="status-card ${tone}">
+      <div class="status-copy">
+        <span class="summary-label">${title}</span>
+        <strong>${message}</strong>
+        ${detail ? `<span class="summary-note">${detail}</span>` : ""}
       </div>
-      <span class="badge ok">ready</span>
+      ${actionLabel && actionHref ? `<a class="btn primary" href="${actionHref}" target="_blank" rel="noreferrer">${actionLabel}</a>` : ""}
     </div>
-    ${rows}
   `;
 };
+
+const apiJson = async (url, options = {}) => {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || "Request failed");
+  }
+  return data;
+};
+
+const runPreflight = async () => {
+  preflightRequested = true;
+  preflightResults.innerHTML = "<p class=\"muted\">Checking this Mac…</p>";
+  try {
+    await saveConfig();
+    const data = await apiJson("/api/preflight");
+    renderReadySummary(data.summary);
+    renderChecks(data.checks || []);
+    return data;
+  } catch (err) {
+    renderInstallState({
+      title: "Readiness check",
+      tone: "error",
+      message: "Setup Center could not finish the readiness check.",
+      detail: "Detailed diagnostics were written to the local setup activity log.",
+    });
+    preflightResults.innerHTML = `<p class="muted">${err?.message || err}</p>`;
+    return null;
+  }
+};
+
+const ensureReadyForInstall = async () => {
+  const data = await runPreflight();
+  if (!data?.summary?.install_ready) {
+    showStep(2);
+    renderInstallState({
+      title: "Install blocked",
+      tone: "warn",
+      message: "Fix the readiness items before continuing.",
+      detail: "Setup Center moved you back to the readiness step so you can review them.",
+    });
+    return false;
+  }
+  return true;
+};
+
+const waitForHandoff = async () => {
+  const deadline = Date.now() + 20000;
+  let sawDown = false;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch("/healthz", { cache: "no-store" });
+      if (res.ok && sawDown) {
+        return true;
+      }
+      if (res.ok) {
+        await sleep(350);
+        continue;
+      }
+    } catch {
+      sawDown = true;
+    }
+    await sleep(350);
+  }
+  return false;
+};
+
+const renderHealthReport = (report, dashboardUrl = "") => {
+  const entries = [
+    { key: "core_api", label: "Controller API" },
+    { key: "dashboard", label: "Dashboard UI" },
+    { key: "mqtt", label: "MQTT broker" },
+    { key: "database", label: "Database" },
+    { key: "redis", label: "Redis" },
+    { key: "qdrant", label: "Qdrant" },
+  ];
+  const checksHtml = entries
+    .map(({ key, label }) => {
+      const entry = report?.[key] || { status: "unknown", message: "No data returned" };
+      const tone = entry.status === "ok" ? "ok" : entry.status === "error" ? "error" : "warn";
+      return `
+        <div class="check">
+          <div>
+            <strong>${label}</strong>
+            <span>${entry.message}</span>
+          </div>
+          <span class="badge ${tone}">${entry.status}</span>
+        </div>
+      `;
+    })
+    .join("");
+  const openButton =
+    dashboardUrl && report?.dashboard?.status === "ok"
+      ? `<a class="btn primary" href="${dashboardUrl}" target="_blank" rel="noreferrer">Open Dashboard</a>`
+      : "";
+
+  installOutput.innerHTML = `
+    <div class="status-card ok">
+      <div class="status-copy">
+        <span class="summary-label">Service status</span>
+        <strong>Infrastructure Dashboard service check complete.</strong>
+        <span class="summary-note">Detailed logs remain available in the local setup activity log.</span>
+      </div>
+      ${openButton}
+    </div>
+    <div class="checklist">${checksHtml}</div>
+  `;
+};
+
+const runHealthCheck = async (dashboardUrl = "") => {
+  renderInstallState({
+    title: "Service check",
+    tone: "ok",
+    message: "Verifying Infrastructure Dashboard services…",
+  });
+  try {
+    const data = await apiJson("/api/health-report");
+    renderHealthReport(data.report || {}, dashboardUrl);
+  } catch (err) {
+    renderInstallState({
+      title: "Service check",
+      tone: "error",
+      message: "Service verification failed.",
+      detail: err?.message || String(err),
+    });
+  }
+};
+
+const runInstallerAction = async (endpoint, title) => {
+  renderInstallState({
+    title,
+    tone: "ok",
+    message: "Saving settings and preparing the install…",
+  });
+  try {
+    await saveConfig();
+    if (!(await ensureReadyForInstall())) {
+      return;
+    }
+    showStep(3);
+    renderInstallState({
+      title,
+      tone: "ok",
+      message: `${title} is running…`,
+      detail: "Setup Center is applying the bundle and starting managed services.",
+    });
+
+    const data = await apiJson(endpoint, { method: "POST" });
+    renderInstallState({
+      title,
+      tone: data.ok ? "ok" : "error",
+      message: data.message || `${title} complete.`,
+      detail: data.ok
+        ? "Detailed command output was saved automatically for support."
+        : "Review the readiness check or local setup activity log before retrying.",
+      actionLabel: data.ok ? "Open Dashboard" : "",
+      actionHref: data.ok ? data.dashboard_url || "" : "",
+    });
+
+    if (data.handoff) {
+      renderInstallState({
+        title,
+        tone: "ok",
+        message: "Infrastructure Dashboard is switching from Setup Center to managed services…",
+        detail: "Waiting for the local service handoff to finish.",
+      });
+      await waitForHandoff();
+      await runHealthCheck(data.dashboard_url || "");
+      return;
+    }
+
+    if (data.ok) {
+      await runHealthCheck(data.dashboard_url || "");
+    }
+  } catch (err) {
+    renderInstallState({
+      title,
+      tone: "error",
+      message: `${title} failed.`,
+      detail: err?.message || String(err),
+    });
+  }
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 prevBtn.addEventListener("click", () => showStep(currentStep - 1));
 nextBtn.addEventListener("click", () => showStep(currentStep + 1));
 
-preflightBtn.addEventListener("click", async () => {
-  preflightResults.innerHTML = "<p class=\"muted\">Running checks...</p>";
-  try {
-    await saveConfig();
-  } catch (err) {
-    preflightResults.innerHTML = `<p class="muted">Unable to save config: ${err?.message || err}</p>`;
-    return;
-  }
-  const response = await fetch("/api/preflight");
-  const data = await response.json();
-  renderChecks(data.checks || []);
+preflightBtn.addEventListener("click", () => {
+  void runPreflight();
 });
 
-planBtn.addEventListener("click", async () => {
-  planOutput.innerHTML = "<p class=\"muted\">Generating plan...</p>";
-  try {
-    await saveConfig();
-  } catch (err) {
-    planOutput.innerHTML = `<p class="muted">Unable to save config: ${err?.message || err}</p>`;
-    return;
-  }
-  const response = await fetch("/api/plan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  });
-  const data = await response.json();
-  renderPlan(data);
+installBtn.addEventListener("click", () => {
+  void runInstallerAction("/api/install", "Install");
 });
 
-const runInstallerAction = async (endpoint, title) => {
-  installOutput.innerHTML = "<p class=\"muted\">Running...</p>";
-  try {
-    await saveConfig();
-  } catch (err) {
-    installOutput.innerHTML = `<p class="muted">Unable to save config: ${err?.message || err}</p>`;
-    return;
-  }
-  const response = await fetch(endpoint, { method: "POST" });
-  const data = await response.json();
-  const results = [...(data.farmctl || []), ...(data.launchd || [])];
-  renderCommandResults(title, results);
-  try {
-    await loadConfig();
-  } catch {
-    // ignore; action output is more important than config refresh here
-  }
-  if (data.handoff) {
-    installOutput.insertAdjacentHTML(
-      "beforeend",
-      "<p class=\"muted\">Restarting Setup daemon (handoff to launchd)...</p>",
-    );
-    await waitForHandoff();
-  }
-};
-
-installBtn.addEventListener("click", () => runInstallerAction("/api/install", "Install"));
-upgradeBtn.addEventListener("click", () => runInstallerAction("/api/upgrade", "Upgrade"));
-rollbackBtn.addEventListener("click", () => runInstallerAction("/api/rollback", "Rollback"));
-
-healthBtn.addEventListener("click", async () => {
-  installOutput.innerHTML = "<p class=\"muted\">Checking health...</p>";
-  const response = await fetch("/api/health-report");
-  const data = await response.json();
-  const report = data.report || {};
-  const rows = ["core_api", "dashboard", "mqtt", "database", "redis"]
-    .map((key) => report[key] || { status: "unknown", message: "No data" })
-    .map(
-      (entry) => `
-    <div class="check">
-      <div>
-        <strong>${entry.message}</strong>
-        <span>${entry.status}</span>
-      </div>
-      <span class="badge ${entry.status === "ok" ? "ok" : "error"}">${entry.status}</span>
-    </div>
-  `
-    )
-    .join("");
-  installOutput.innerHTML = rows || "<p class=\"muted\">No health data returned.</p>";
+upgradeBtn.addEventListener("click", () => {
+  void runInstallerAction("/api/upgrade", "Upgrade");
 });
 
-diagnosticsBtn.addEventListener("click", async () => {
-  installOutput.innerHTML = "<p class=\"muted\">Exporting diagnostics...</p>";
-  const response = await fetch("/api/diagnostics", { method: "POST" });
-  const data = await response.json();
-  renderCommandResults("Diagnostics", data.logs || []);
+rollbackBtn.addEventListener("click", () => {
+  void runInstallerAction("/api/rollback", "Rollback");
+});
+
+healthBtn.addEventListener("click", () => {
+  void runHealthCheck(loadedConfig ? `http://127.0.0.1:${loadedConfig.core_port || 8000}/` : "");
 });
 
 toggleAdvancedBtn.addEventListener("click", () => {
@@ -270,17 +435,14 @@ if (mqttDetectBtn) {
     if (!field) return;
     mqttDetectBtn.disabled = true;
     const originalText = mqttDetectBtn.textContent;
-    mqttDetectBtn.textContent = "Detecting...";
+    mqttDetectBtn.textContent = "Detecting…";
     try {
-      const response = await fetch("/api/local-ip");
-      const data = await response.json();
+      const data = await apiJson("/api/local-ip");
       const recommended = data?.recommended;
       if (typeof recommended === "string" && recommended.trim()) {
         field.value = recommended.trim();
         await saveConfig();
       }
-    } catch {
-      // ignore; leave the field unchanged
     } finally {
       mqttDetectBtn.disabled = false;
       mqttDetectBtn.textContent = originalText;
@@ -288,29 +450,14 @@ if (mqttDetectBtn) {
   });
 }
 
-loadConfig().catch(() => null);
+loadConfig()
+  .catch((err) => {
+    renderInstallState({
+      title: "Setup Center",
+      tone: "error",
+      message: "Unable to load installer settings.",
+      detail: err?.message || String(err),
+    });
+  });
 
 showStep(0);
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const waitForHandoff = async () => {
-  const deadline = Date.now() + 20000;
-  let sawDown = false;
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch("/healthz", { cache: "no-store" });
-      if (res.ok && sawDown) {
-        window.location.reload();
-        return;
-      }
-      if (res.ok) {
-        await sleep(350);
-        continue;
-      }
-    } catch {
-      sawDown = true;
-    }
-    await sleep(350);
-  }
-};

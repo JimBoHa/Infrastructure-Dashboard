@@ -224,11 +224,11 @@ const SidebarNav = () => {
           <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="inline-flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-sm font-semibold text-white">
-              FD
+              ID
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-card-foreground">
-                Farm Dashboard
+                Infrastructure Dashboard
               </div>
  <div className="truncate text-xs text-muted-foreground">
                 Realtime control & insight

@@ -5,7 +5,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 use tempfile::TempDir;
@@ -19,7 +19,7 @@ use crate::config::{
     env_flag, load_config, normalize_config, resolve_config_path, save_config_if_changed,
     validate_bundle_path, SaveConfigMode,
 };
-use crate::constants::{BUNDLE_ROOT_DIR, MANIFEST_NAME, MANIFEST_VERSION};
+use crate::constants::{BUNDLE_ROOT_DIR, LEGACY_BUNDLE_ROOT_DIR, MANIFEST_NAME, MANIFEST_VERSION};
 use crate::health::run_health_checks;
 use crate::launchd::{apply_launchd, generate_plan, launchd_results_ok};
 use crate::migrations::apply_migrations;
@@ -170,7 +170,7 @@ fn mount_dmg(path: &Path) -> Result<DmgMount> {
             let file_name = path
                 .file_name()
                 .map(|name| name.to_owned())
-                .unwrap_or_else(|| OsStr::new("FarmDashboardController.dmg").to_owned());
+                .unwrap_or_else(|| OsStr::new("InfrastructureDashboardController.dmg").to_owned());
             let copied = dmg_copy_dir.path().join(file_name);
             fs::copy(path, &copied)?;
             strip_quarantine_best_effort(&copied);
@@ -209,6 +209,14 @@ fn load_manifest(bundle_root: &Path) -> Result<BundleManifest> {
         );
     }
     Ok(manifest)
+}
+
+fn bundle_root_path(mount_root: &Path) -> PathBuf {
+    let primary = mount_root.join(BUNDLE_ROOT_DIR);
+    if primary.exists() {
+        return primary;
+    }
+    mount_root.join(LEGACY_BUNDLE_ROOT_DIR)
 }
 
 fn verify_manifest(manifest: &BundleManifest, bundle_root: &Path) -> Result<()> {
@@ -270,7 +278,7 @@ pub fn install_bundle(
 
     validate_bundle_path(&args.bundle)?;
     let mount = mount_dmg(&args.bundle)?;
-    let bundle_root = mount.path().join(BUNDLE_ROOT_DIR);
+    let bundle_root = bundle_root_path(mount.path());
     if !bundle_root.exists() {
         bail!("Bundle root not found at {}", bundle_root.display());
     }

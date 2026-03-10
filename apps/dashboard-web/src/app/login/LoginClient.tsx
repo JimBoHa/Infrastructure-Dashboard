@@ -180,10 +180,10 @@ export default function LoginClient() {
       <div className="w-full max-w-md space-y-6">
         <header className="space-y-1 text-center">
           <div className="mx-auto inline-flex size-12 items-center justify-center rounded-2xl bg-indigo-600 text-base font-semibold text-white">
-            FD
+            ID
           </div>
           <h1 className="text-2xl font-semibold text-card-foreground">
-            Farm Dashboard
+            Infrastructure Dashboard
           </h1>
  <p className="text-sm text-muted-foreground">{title} to continue.</p>
         </header>
@@ -223,7 +223,7 @@ export default function LoginClient() {
                 onChange={(event) => setEmail(event.target.value)}
                 type="email"
                 autoComplete="email"
-                placeholder="admin@farmdashboard.local"
+                placeholder="admin@infrastructuredashboard.local"
               />
             </div>
 

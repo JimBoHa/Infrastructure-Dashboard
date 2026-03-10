@@ -9,15 +9,18 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::constants::{
-    DEFAULT_QDRANT_PORT, DEFAULT_REDIS_PORT, DEFAULT_SETUP_PORT, DEFAULT_STATE_DIR,
+    BUNDLE_ROOT_DIR, DEFAULT_DATA_ROOT, DEFAULT_QDRANT_PORT, DEFAULT_REDIS_PORT,
+    DEFAULT_SETUP_PORT, DEFAULT_STATE_DIR, LEGACY_BUNDLE_ROOT_DIR, LEGACY_DATA_ROOT,
+    LEGACY_STATE_DIR,
 };
 use crate::profile::InstallProfile;
 use crate::utils::{allocate_local_port, which};
 
 pub fn setup_state_dir() -> PathBuf {
-    std::env::var("FARM_SETUP_STATE_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from(DEFAULT_STATE_DIR))
+    if let Ok(path) = std::env::var("FARM_SETUP_STATE_DIR") {
+        return PathBuf::from(path);
+    }
+    preferred_brand_dir(DEFAULT_STATE_DIR, LEGACY_STATE_DIR)
 }
 
 pub fn default_config_path() -> PathBuf {
@@ -33,11 +36,13 @@ fn default_install_root() -> String {
 }
 
 fn default_data_root() -> String {
-    "/Users/Shared/FarmDashboard".to_string()
+    preferred_brand_dir(DEFAULT_DATA_ROOT, LEGACY_DATA_ROOT)
+        .display()
+        .to_string()
 }
 
 fn default_logs_root() -> String {
-    "/Users/Shared/FarmDashboard/logs".to_string()
+    preferred_data_child("logs").display().to_string()
 }
 
 fn default_core_binary() -> String {
@@ -155,7 +160,9 @@ fn ensure_database_url(config: &mut SetupConfig) -> Result<bool> {
 }
 
 fn default_backup_root() -> String {
-    "/Users/Shared/FarmDashboard/storage/backups".to_string()
+    preferred_data_child("storage/backups")
+        .display()
+        .to_string()
 }
 
 fn default_enable_analytics_feeds() -> bool {
@@ -196,6 +203,20 @@ fn default_setup_port() -> u16 {
 
 fn default_launchd_label_prefix() -> String {
     "com.farmdashboard".to_string()
+}
+
+fn preferred_brand_dir(primary: &str, legacy: &str) -> PathBuf {
+    let primary_path = PathBuf::from(primary);
+    let legacy_path = PathBuf::from(legacy);
+    if primary_path.exists() || !legacy_path.exists() {
+        primary_path
+    } else {
+        legacy_path
+    }
+}
+
+fn preferred_data_child(child: &str) -> PathBuf {
+    preferred_brand_dir(DEFAULT_DATA_ROOT, LEGACY_DATA_ROOT).join(child)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -766,7 +787,7 @@ fn find_bundle_dmg_in_dir(dir: &Path) -> Option<PathBuf> {
             continue;
         }
         if let Some(name) = path.file_name().and_then(OsStr::to_str) {
-            if name.contains("FarmDashboardController") {
+            if name.contains(BUNDLE_ROOT_DIR) || name.contains(LEGACY_BUNDLE_ROOT_DIR) {
                 return Some(path);
             }
         }

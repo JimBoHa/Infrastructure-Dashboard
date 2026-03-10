@@ -188,7 +188,7 @@ export default function ControllerConfigurationSection({
                   </span>
                   <Input
                     type="text"
-                    placeholder="/Users/Shared/FarmDashboardController-0.1.9.xx.dmg"
+                    placeholder="/Users/Shared/InfrastructureDashboardController-0.1.9.xx.dmg"
                     value={model.draft.bundle_path}
                     onChange={(event) => model.updateDraft({ bundle_path: event.target.value })}
                   />
@@ -692,4 +692,3 @@ export default function ControllerConfigurationSection({
     </CollapsibleCard>
   );
 }
-

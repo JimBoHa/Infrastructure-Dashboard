@@ -5,7 +5,11 @@ use crate::constants::{DEFAULT_SETUP_HOST, DEFAULT_SETUP_PORT};
 use crate::profile::InstallProfile;
 
 #[derive(Parser)]
-#[command(name = "farmctl", version, about = "Farm Dashboard installer CLI")]
+#[command(
+    name = "farmctl",
+    version,
+    about = "Infrastructure Dashboard installer CLI"
+)]
 pub struct Cli {
     #[arg(long, global = true, value_enum)]
     pub profile: Option<InstallProfile>,

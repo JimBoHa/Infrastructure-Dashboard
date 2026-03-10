@@ -5,6 +5,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{env, ffi::OsStr};
 use walkdir::WalkDir;
 
 use crate::bundle_node_overlay::build_node_agent_overlay;
@@ -12,10 +13,11 @@ use crate::cli::{BundleArgs, InstallerArgs};
 use crate::config::{default_config, default_config_path, validate_bundle_path};
 use crate::constants::{
     BUNDLE_ROOT_DIR, DEFAULT_SETUP_HOST, DEFAULT_SETUP_PORT, MANIFEST_NAME, MANIFEST_VERSION,
+    PRODUCT_INSTALLER_NAME,
 };
 use crate::utils::{copy_dir, run_cmd, sha256_file, which};
 
-const TIER_A_BUILDS_DIR: &str = "/Users/Shared/FarmDashboardBuilds";
+const TIER_A_BUILDS_DIR: &str = "/Users/Shared/InfrastructureDashboardBuilds";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BundleManifest {
@@ -49,7 +51,7 @@ pub fn bundle(args: BundleArgs) -> Result<()> {
     }
 
     let temp_dir = tempfile::tempdir()?;
-    let volume_root = temp_dir.path().join("FarmDashboardBundle");
+    let volume_root = temp_dir.path().join("InfrastructureDashboardBundle");
     let root = volume_root.join(BUNDLE_ROOT_DIR);
     fs::create_dir_all(root.join("artifacts"))?;
     fs::create_dir_all(root.join("configs"))?;
@@ -97,7 +99,10 @@ pub fn bundle(args: BundleArgs) -> Result<()> {
     let status = Command::new("hdiutil")
         .arg("create")
         .arg("-volname")
-        .arg(format!("FarmDashboardController-{}", args.version))
+        .arg(format!(
+            "InfrastructureDashboardController-{}",
+            args.version
+        ))
         .arg("-srcfolder")
         .arg(&volume_root)
         .arg("-ov")
@@ -221,7 +226,7 @@ mod tests {
 pub fn installer(args: InstallerArgs) -> Result<()> {
     validate_bundle_path(&args.bundle)?;
     let temp_dir = tempfile::tempdir()?;
-    let root = temp_dir.path().join("FarmDashboardInstaller");
+    let root = temp_dir.path().join("InfrastructureDashboardInstaller");
     fs::create_dir_all(&root)?;
 
     let farmctl_binary = if let Some(path) = args.farmctl_binary {
@@ -236,10 +241,12 @@ pub fn installer(args: InstallerArgs) -> Result<()> {
     if let Some(parent) = args.output.parent() {
         fs::create_dir_all(parent)?;
     }
+    let volname = env::var("FARM_DASHBOARD_INSTALLER_VOLNAME")
+        .unwrap_or_else(|_| format!("InfrastructureDashboardInstaller-{}", args.version));
     let status = Command::new("hdiutil")
         .arg("create")
         .arg("-volname")
-        .arg(format!("FarmDashboardInstaller-{}", args.version))
+        .arg(volname)
         .arg("-srcfolder")
         .arg(&root)
         .arg("-ov")
@@ -273,7 +280,7 @@ fn build_installer_app(
     controller_dmg: &Path,
     version: &str,
 ) -> Result<()> {
-    let app_name = "Farm Dashboard Installer.app";
+    let app_name = "Infrastructure Dashboard Installer.app";
     let app_path = root.join(app_name);
     let contents_dir = app_path.join("Contents");
     let macos_dir = contents_dir.join("MacOS");
@@ -285,7 +292,7 @@ fn build_installer_app(
     fs::copy(farmctl_binary, &farmctl_dest)?;
     fs::set_permissions(&farmctl_dest, fs::Permissions::from_mode(0o755))?;
 
-    let dmg_name = format!("FarmDashboardController-{version}.dmg");
+    let dmg_name = format!("InfrastructureDashboardController-{version}.dmg");
     let dmg_dest = resources_dir.join(dmg_name);
     fs::copy(controller_dmg, &dmg_dest)?;
 
@@ -300,7 +307,7 @@ fn build_installer_app(
         bail!("swiftc not found; install Xcode command line tools to build the installer launcher");
     }
 
-    let launcher_bin = macos_dir.join("FarmDashboardInstaller");
+    let launcher_bin = macos_dir.join("InfrastructureDashboardInstaller");
     let mut cmd = Command::new("swiftc");
     cmd.arg("-O")
         .arg("-framework")
@@ -318,29 +325,30 @@ fn build_installer_app(
 <plist version="1.0">
 <dict>
   <key>CFBundleDisplayName</key>
-  <string>Farm Dashboard Installer</string>
+  <string>{display_name}</string>
   <key>CFBundleName</key>
-  <string>Farm Dashboard Installer</string>
+  <string>{display_name}</string>
   <key>CFBundleIdentifier</key>
-  <string>com.farmdashboard.installer</string>
+  <string>com.infrastructuredashboard.installer</string>
   <key>CFBundleExecutable</key>
-  <string>FarmDashboardInstaller</string>
+  <string>InfrastructureDashboardInstaller</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
   <string>{version}</string>
   <key>CFBundleVersion</key>
   <string>{version}</string>
-  <key>FarmSetupHost</key>
+  <key>InfrastructureSetupHost</key>
   <string>{host}</string>
-  <key>FarmSetupPort</key>
+  <key>InfrastructureSetupPort</key>
   <integer>{port}</integer>
-  <key>FarmSetupConfigPath</key>
+  <key>InfrastructureSetupConfigPath</key>
   <string>{config_path}</string>
 </dict>
 </plist>
 "#,
         version = version,
+        display_name = PRODUCT_INSTALLER_NAME,
         host = DEFAULT_SETUP_HOST,
         port = DEFAULT_SETUP_PORT,
         config_path = config_path.display(),
@@ -377,7 +385,133 @@ fn build_core_server(artifacts_root: &Path) -> Result<()> {
         )
     })?;
     fs::set_permissions(&bin_dest, fs::Permissions::from_mode(0o755))?;
+    bundle_core_server_openssl(&bin_dest, &core_dir)?;
     Ok(())
+}
+
+fn bundle_core_server_openssl(bin_path: &Path, core_dir: &Path) -> Result<()> {
+    let lib_dir = core_dir.join("lib");
+    fs::create_dir_all(&lib_dir)?;
+
+    let openssl_lib_dir = resolve_openssl_lib_dir()?;
+    let libssl_src = openssl_lib_dir.join("libssl.3.dylib");
+    let libcrypto_src = openssl_lib_dir.join("libcrypto.3.dylib");
+    if !libssl_src.exists() || !libcrypto_src.exists() {
+        bail!(
+            "OpenSSL dylibs not found in {} (missing libssl.3.dylib or libcrypto.3.dylib)",
+            openssl_lib_dir.display()
+        );
+    }
+
+    let libssl_dest = lib_dir.join("libssl.3.dylib");
+    let libcrypto_dest = lib_dir.join("libcrypto.3.dylib");
+    fs::copy(&libssl_src, &libssl_dest).with_context(|| {
+        format!(
+            "Failed to copy {} to {}",
+            libssl_src.display(),
+            libssl_dest.display()
+        )
+    })?;
+    fs::copy(&libcrypto_src, &libcrypto_dest).with_context(|| {
+        format!(
+            "Failed to copy {} to {}",
+            libcrypto_src.display(),
+            libcrypto_dest.display()
+        )
+    })?;
+    fs::set_permissions(&libssl_dest, fs::Permissions::from_mode(0o755))?;
+    fs::set_permissions(&libcrypto_dest, fs::Permissions::from_mode(0o755))?;
+
+    let rpath = "@loader_path/../lib";
+    run_install_name_tool(&["-add_rpath", rpath], bin_path)?;
+    run_install_name_tool(
+        &[
+            "-change",
+            libssl_src.to_string_lossy().as_ref(),
+            "@rpath/libssl.3.dylib",
+        ],
+        bin_path,
+    )?;
+    run_install_name_tool(
+        &[
+            "-change",
+            libcrypto_src.to_string_lossy().as_ref(),
+            "@rpath/libcrypto.3.dylib",
+        ],
+        bin_path,
+    )?;
+
+    run_install_name_tool(&["-id", "@rpath/libssl.3.dylib"], &libssl_dest)?;
+    run_install_name_tool(&["-id", "@rpath/libcrypto.3.dylib"], &libcrypto_dest)?;
+    run_install_name_tool(
+        &[
+            "-change",
+            libcrypto_src.to_string_lossy().as_ref(),
+            "@rpath/libcrypto.3.dylib",
+        ],
+        &libssl_dest,
+    )?;
+
+    Ok(())
+}
+
+fn resolve_openssl_lib_dir() -> Result<PathBuf> {
+    if let Ok(value) = env::var("OPENSSL_LIB_DIR") {
+        let path = PathBuf::from(value);
+        if path.join("libssl.3.dylib").exists() {
+            return Ok(path);
+        }
+    }
+    if let Ok(value) = env::var("OPENSSL_DIR") {
+        let path = PathBuf::from(value).join("lib");
+        if path.join("libssl.3.dylib").exists() {
+            return Ok(path);
+        }
+    }
+
+    let candidates = [
+        "/opt/homebrew/opt/openssl@3/lib",
+        "/usr/local/opt/openssl@3/lib",
+    ];
+    for candidate in candidates {
+        let path = PathBuf::from(candidate);
+        if path.join("libssl.3.dylib").exists() {
+            return Ok(path);
+        }
+    }
+
+    if let Some(brew_path) = which("brew") {
+        let output = Command::new(brew_path)
+            .arg("--prefix")
+            .arg("openssl@3")
+            .output()
+            .with_context(|| "Failed to query brew prefix for openssl@3")?;
+        if output.status.success() {
+            let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !prefix.is_empty() {
+                let path = PathBuf::from(prefix).join("lib");
+                if path.join("libssl.3.dylib").exists() {
+                    return Ok(path);
+                }
+            }
+        }
+    }
+
+    bail!("OpenSSL 3 dylibs not found. Install openssl@3 or set OPENSSL_LIB_DIR / OPENSSL_DIR.")
+}
+
+fn run_install_name_tool<S: AsRef<OsStr>>(args: &[S], target: &Path) -> Result<()> {
+    let mut cmd = Command::new("install_name_tool");
+    cmd.args(args).arg(target);
+    run_cmd(cmd).with_context(|| {
+        format!(
+            "install_name_tool failed for {} with args {:?}",
+            target.display(),
+            args.iter()
+                .map(|arg| arg.as_ref().to_string_lossy().to_string())
+                .collect::<Vec<_>>()
+        )
+    })
 }
 
 fn build_sidecar(artifacts_root: &Path) -> Result<()> {
@@ -402,6 +536,23 @@ fn build_sidecar(artifacts_root: &Path) -> Result<()> {
 fn build_dashboard(artifacts_root: &Path) -> Result<()> {
     let dashboard_dir = artifacts_root.join("dashboard-web");
     fs::create_dir_all(&dashboard_dir)?;
+    if let Ok(prebuilt) = env::var("FARM_DASHBOARD_DASHBOARD_ARTIFACT") {
+        let prebuilt = PathBuf::from(prebuilt);
+        if !prebuilt.exists() {
+            bail!(
+                "Prebuilt dashboard artifact not found at {}",
+                prebuilt.display()
+            );
+        }
+        copy_dir(&prebuilt, &dashboard_dir).with_context(|| {
+            format!(
+                "Failed to copy prebuilt dashboard from {} to {}",
+                prebuilt.display(),
+                dashboard_dir.display()
+            )
+        })?;
+        return Ok(());
+    }
 
     let temp_dir = tempfile::tempdir()?;
     let work_dir = temp_dir.path().join("dashboard-web");

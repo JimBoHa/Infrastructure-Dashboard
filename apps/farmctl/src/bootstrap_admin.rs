@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use base64::engine::general_purpose::STANDARD_NO_PAD;
 use base64::Engine;
 use pbkdf2::pbkdf2_hmac;
-use postgres::{Client, NoTls};
 use postgres::types::Json;
+use postgres::{Client, NoTls};
 use rand::rngs::OsRng;
 use rand::RngCore;
 use sha2::Sha256;
@@ -18,7 +18,7 @@ const DEFAULT_ITERATIONS: u32 = 200_000;
 const SALT_BYTES: usize = 16;
 const DERIVED_BYTES: usize = 32;
 
-pub(crate) const BOOTSTRAP_ADMIN_EMAIL: &str = "admin@farmdashboard.local";
+pub(crate) const BOOTSTRAP_ADMIN_EMAIL: &str = "admin@infrastructuredashboard.local";
 const BOOTSTRAP_ADMIN_NAME: &str = "Admin";
 const BOOTSTRAP_ADMIN_ROLE: &str = "admin";
 
@@ -60,8 +60,7 @@ pub(crate) fn ensure_bootstrap_admin(
 
     let password = generate_temp_password();
     let password_hash = hash_password(&password)?;
-    let capabilities_json =
-        serde_json::json!(BOOTSTRAP_ADMIN_CAPABILITIES);
+    let capabilities_json = serde_json::json!(BOOTSTRAP_ADMIN_CAPABILITIES);
 
     client
         .execute(

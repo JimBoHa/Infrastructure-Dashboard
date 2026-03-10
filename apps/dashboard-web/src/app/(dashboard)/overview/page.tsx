@@ -8,7 +8,7 @@ import LocalSensorVisualizations from "@/features/overview/components/LocalSenso
 
 export default function OverviewPage() {
   const siteMapTooltips: Record<string, string> = {
-    "Farm Dashboard": "High-level entry point to the controller UI.",
+    "Infrastructure Dashboard": "High-level entry point to the controller UI.",
     "Operations tabs": "Day-to-day monitoring and configuration surfaces.",
     "Analytics tabs": "Analytical dashboards and deep-dive tools.",
     Overview: "System-wide status and quick entry points.",
@@ -37,12 +37,12 @@ export default function OverviewPage() {
 
   const siteMapDiagram = `
 flowchart LR
-  FD[Farm Dashboard]:::root
+  ID[Infrastructure Dashboard]:::root
 
-  FD --> OPS[Operations]:::group
-  FD --> ANA[Analytics]:::group
-  FD --> ADM[Admin]:::group
-  FD --> SYS[System]:::group
+  ID --> OPS[Operations]:::group
+  ID --> ANA[Analytics]:::group
+  ID --> ADM[Admin]:::group
+  ID --> SYS[System]:::group
 
   subgraph OPS[Operations tabs]
     OVR[Overview]
@@ -138,7 +138,7 @@ flowchart LR
       >
         <MermaidDiagram
           diagram={siteMapDiagram}
-          ariaLabel="Farm Dashboard site map"
+          ariaLabel="Infrastructure Dashboard site map"
           tooltips={siteMapTooltips}
         />
       </CollapsibleCard>

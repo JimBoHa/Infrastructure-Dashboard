@@ -11,7 +11,7 @@ fn default_output_dir(version: &str) -> PathBuf {
 }
 
 fn installer_filename(version: &str) -> String {
-    format!("FarmDashboardInstaller-{version}.dmg")
+    format!("InfrastructureDashboardInstaller-{version}.dmg")
 }
 
 fn ensure_public_release_dir(output_dir: &Path) -> Result<()> {
@@ -30,9 +30,12 @@ fn ensure_public_release_dir(output_dir: &Path) -> Result<()> {
             Some(name) => name,
             None => continue,
         };
-        if filename.starts_with("FarmDashboardController-") && filename.ends_with(".dmg") {
+        if (filename.starts_with("InfrastructureDashboardController-")
+            || filename.starts_with("FarmDashboardController-"))
+            && filename.ends_with(".dmg")
+        {
             anyhow::bail!(
-                "Refusing to build a public release into {} because it already contains an internal controller DMG ({filename}). Use a clean output dir or delete the controller DMG; public releases must ship only FarmDashboardInstaller-<version>.dmg.",
+                "Refusing to build a public release into {} because it already contains an internal controller DMG ({filename}). Use a clean output dir or delete the controller DMG; public releases must ship only InfrastructureDashboardInstaller-<version>.dmg.",
                 output_dir.display()
             );
         }
@@ -66,9 +69,10 @@ pub fn dist(args: DistArgs) -> Result<()> {
 
     let temp_dir =
         tempfile::tempdir().context("failed to create temp dir for controller bundle")?;
-    let bundle_path = temp_dir
-        .path()
-        .join(format!("FarmDashboardController-{}.dmg", args.version));
+    let bundle_path = temp_dir.path().join(format!(
+        "InfrastructureDashboardController-{}.dmg",
+        args.version
+    ));
 
     bundle::bundle(BundleArgs {
         version: args.version.clone(),

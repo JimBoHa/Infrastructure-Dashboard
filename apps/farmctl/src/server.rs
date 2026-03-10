@@ -6,8 +6,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use chrono::Utc;
 use serde_json::json;
-use std::fs;
+use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
@@ -20,9 +21,9 @@ use tower_http::cors::{Any, CorsLayer};
 use crate::cli::ServeArgs;
 use crate::config::{
     default_config, env_flag, load_config, normalize_config, patch_config, resolve_config_path,
-    save_config, SetupConfig, SetupConfigPatch,
+    save_config, setup_state_dir, SetupConfig, SetupConfigPatch,
 };
-use crate::launchd::{generate_plan, run_preflight};
+use crate::launchd::{generate_plan, run_preflight, LaunchdPlan, PreflightCheck};
 use crate::privileged::run_farmctl_authorized;
 use crate::profile::InstallProfile;
 use crate::utils::{run_cmd_capture, CommandResult};
@@ -48,6 +49,76 @@ struct ApiState {
     farmctl_path: PathBuf,
 }
 
+const SETUP_ACTIVITY_LOG_NAME: &str = "setup-assistant.log";
+
+fn activity_log_path() -> PathBuf {
+    setup_state_dir().join(SETUP_ACTIVITY_LOG_NAME)
+}
+
+fn append_activity_log(event: &str, payload: serde_json::Value) {
+    let path = activity_log_path();
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+
+    let entry = json!({
+        "ts": Utc::now().to_rfc3339(),
+        "event": event,
+        "payload": payload,
+    });
+
+    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
+        let _ = writeln!(file, "{}", entry);
+    }
+}
+
+fn preflight_summary(checks: &[PreflightCheck]) -> serde_json::Value {
+    let ready = checks.iter().filter(|check| check.status == "ok").count();
+    let warnings = checks.iter().filter(|check| check.status == "warn").count();
+    let blocked = checks
+        .iter()
+        .filter(|check| check.status == "error")
+        .count();
+    json!({
+        "ready": ready,
+        "warnings": warnings,
+        "blocked": blocked,
+        "install_ready": blocked == 0,
+    })
+}
+
+fn plan_summary(plan: &LaunchdPlan) -> serde_json::Value {
+    json!({
+        "services": plan.plists.len(),
+        "warnings": plan.warnings.len(),
+        "staging_dir": plan.staging_dir,
+        "target_dir": plan.target_dir,
+    })
+}
+
+fn user_message_for_action(action: &str, ok: bool, handoff: bool) -> String {
+    if ok && handoff {
+        return format!(
+            "{action} complete. Infrastructure Dashboard is switching to managed services."
+        );
+    }
+    if ok {
+        return format!("{action} complete.");
+    }
+    format!("{action} did not finish successfully. Detailed diagnostics were saved automatically.")
+}
+
+fn ui_error_response(event: &str, err: anyhow::Error) -> axum::response::Response {
+    append_activity_log(
+        event,
+        json!({
+            "ok": false,
+            "error": err.to_string(),
+        }),
+    );
+    error_response(err)
+}
+
 pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) -> Result<()> {
     let config_path = resolve_config_path(args.config);
     let static_root = args.static_root.clone().or_else(|| {
@@ -55,8 +126,7 @@ pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) ->
             .ok()
             .map(PathBuf::from)
     });
-    let farmctl_path = std::env::current_exe()
-        .context("Failed to resolve farmctl binary path")?;
+    let farmctl_path = std::env::current_exe().context("Failed to resolve farmctl binary path")?;
     let state = Arc::new(ApiState {
         config_path,
         static_root,
@@ -145,7 +215,7 @@ async fn local_ip_handler() -> impl IntoResponse {
 async fn get_config_handler(State(state): State<Arc<ApiState>>) -> impl IntoResponse {
     match load_config_for_state(&state) {
         Ok(config) => Json(config).into_response(),
-        Err(err) => error_response(err),
+        Err(err) => ui_error_response("config.load", err),
     }
 }
 
@@ -159,10 +229,10 @@ async fn post_config_handler(
             if is_permission_denied(&err) {
                 match patch_config_privileged(&state, payload) {
                     Ok(config) => Json(config).into_response(),
-                    Err(priv_err) => error_response(priv_err),
+                    Err(priv_err) => ui_error_response("config.patch", priv_err),
                 }
             } else {
-                error_response(err)
+                ui_error_response("config.patch", err)
             }
         }
     }
@@ -170,8 +240,24 @@ async fn post_config_handler(
 
 async fn preflight_handler(State(state): State<Arc<ApiState>>) -> impl IntoResponse {
     match load_config_for_state(&state).and_then(|config| run_preflight(&config)) {
-        Ok(checks) => Json(json!({ "checks": checks })).into_response(),
-        Err(err) => error_response(err),
+        Ok(checks) => {
+            let summary = preflight_summary(&checks);
+            append_activity_log(
+                "preflight",
+                json!({
+                    "ok": true,
+                    "summary": summary.clone(),
+                    "checks": checks.clone(),
+                }),
+            );
+            Json(json!({
+                "checks": checks,
+                "summary": summary,
+                "activity_log": activity_log_path(),
+            }))
+            .into_response()
+        }
+        Err(err) => ui_error_response("preflight", err),
     }
 }
 
@@ -180,8 +266,24 @@ async fn plan_handler(
     Json(payload): Json<SetupConfigPatch>,
 ) -> impl IntoResponse {
     match patch_config(&state.config_path, payload).and_then(|config| generate_plan(&config)) {
-        Ok(plan) => Json(plan).into_response(),
-        Err(err) => error_response(err),
+        Ok(plan) => {
+            let summary = plan_summary(&plan);
+            append_activity_log(
+                "plan",
+                json!({
+                    "ok": true,
+                    "summary": summary.clone(),
+                    "plan": plan.clone(),
+                }),
+            );
+            Json(json!({
+                "plan": plan,
+                "summary": summary,
+                "activity_log": activity_log_path(),
+            }))
+            .into_response()
+        }
+        Err(err) => ui_error_response("plan", err),
     }
 }
 
@@ -189,13 +291,23 @@ async fn status_handler(State(state): State<Arc<ApiState>>) -> impl IntoResponse
     match load_config_for_state(&state)
         .and_then(|config| run_farmctl(&config, &state.config_path, &["status"], &[]))
     {
-        Ok(result) => Json(json!({
-            "ok": result.ok,
-            "result": parse_farmctl_json(&result),
-            "logs": vec![result],
-        }))
-        .into_response(),
-        Err(err) => error_response(err),
+        Ok(result) => {
+            append_activity_log(
+                "status",
+                json!({
+                    "ok": result.ok,
+                    "result": parse_farmctl_json(&result),
+                    "logs": [result.clone()],
+                }),
+            );
+            Json(json!({
+                "ok": result.ok,
+                "result": parse_farmctl_json(&result),
+                "activity_log": activity_log_path(),
+            }))
+            .into_response()
+        }
+        Err(err) => ui_error_response("status", err),
     }
 }
 
@@ -214,7 +326,7 @@ async fn rollback_handler(State(state): State<Arc<ApiState>>) -> impl IntoRespon
 async fn run_install_action(state: &ApiState, action: &str) -> impl IntoResponse {
     let config = match load_config_for_state(state) {
         Ok(config) => config,
-        Err(err) => return error_response(err),
+        Err(err) => return ui_error_response(&format!("install.{action}.config"), err),
     };
     let bundle = match config.bundle_path.as_ref() {
         Some(path) => path.clone(),
@@ -240,7 +352,7 @@ async fn run_install_action(state: &ApiState, action: &str) -> impl IntoResponse
         &[],
     ) {
         Ok(result) => result,
-        Err(err) => return error_response(err),
+        Err(err) => return ui_error_response(&format!("install.{action}.run"), err),
     };
 
     let launchd_results: Vec<CommandResult> = Vec::new();
@@ -252,10 +364,26 @@ async fn run_install_action(state: &ApiState, action: &str) -> impl IntoResponse
             std::process::exit(0);
         });
     }
+    let dashboard_url = format!("http://127.0.0.1:{}/", config.core_port);
+    let message = user_message_for_action(action, ok, handoff);
+    append_activity_log(
+        &format!("install.{action}"),
+        json!({
+            "ok": ok,
+            "handoff": handoff,
+            "message": message.clone(),
+            "dashboard_url": dashboard_url.clone(),
+            "farmctl": [farmctl_result.clone()],
+            "launchd": launchd_results.clone(),
+        }),
+    );
     Json(json!({
         "ok": ok,
         "handoff": handoff,
-        "farmctl": vec![farmctl_result],
+        "message": message,
+        "dashboard_url": dashboard_url,
+        "activity_log": activity_log_path(),
+        "farmctl": [farmctl_result],
         "launchd": launchd_results,
     }))
     .into_response()
@@ -265,13 +393,24 @@ async fn health_report_handler(State(state): State<Arc<ApiState>>) -> impl IntoR
     match load_config_for_state(&state)
         .and_then(|config| run_farmctl(&config, &state.config_path, &["health", "--json"], &[]))
     {
-        Ok(result) => Json(json!({
-            "ok": result.ok,
-            "report": parse_farmctl_json(&result),
-            "logs": vec![result],
-        }))
-        .into_response(),
-        Err(err) => error_response(err),
+        Ok(result) => {
+            let report = parse_farmctl_json(&result);
+            append_activity_log(
+                "health",
+                json!({
+                    "ok": result.ok,
+                    "report": report.clone(),
+                    "logs": [result.clone()],
+                }),
+            );
+            Json(json!({
+                "ok": result.ok,
+                "report": report,
+                "activity_log": activity_log_path(),
+            }))
+            .into_response()
+        }
+        Err(err) => ui_error_response("health", err),
     }
 }
 
@@ -281,7 +420,7 @@ async fn diagnostics_handler(
 ) -> impl IntoResponse {
     let config = match load_config_for_state(&state) {
         Ok(config) => config,
-        Err(err) => return error_response(err),
+        Err(err) => return ui_error_response("diagnostics.config", err),
     };
     let mut args = vec!["diagnostics".to_string()];
     if let Some(payload) = payload {
@@ -303,12 +442,22 @@ async fn diagnostics_handler(
         &args.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
         &[],
     ) {
-        Ok(result) => Json(json!({
-            "ok": result.ok,
-            "logs": vec![result],
-        }))
-        .into_response(),
-        Err(err) => error_response(err),
+        Ok(result) => {
+            append_activity_log(
+                "diagnostics",
+                json!({
+                    "ok": result.ok,
+                    "logs": [result.clone()],
+                }),
+            );
+            Json(json!({
+                "ok": result.ok,
+                "message": "Diagnostics were captured to the local setup activity log.",
+                "activity_log": activity_log_path(),
+            }))
+            .into_response()
+        }
+        Err(err) => ui_error_response("diagnostics", err),
     }
 }
 
@@ -357,15 +506,19 @@ fn load_config_for_state(state: &ApiState) -> Result<SetupConfig> {
 }
 
 fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<SetupConfig> {
-    let mut temp = NamedTempFile::new()
-        .context("Failed to create temp file for config patch")?;
+    let mut temp = NamedTempFile::new().context("Failed to create temp file for config patch")?;
     let payload = serde_json::to_string(&patch)?;
     temp.write_all(payload.as_bytes())
         .context("Failed to write config patch payload")?;
     let temp_path = temp.path().to_path_buf();
 
     let temp_path_display = temp_path.to_string_lossy();
-    let args = ["config", "patch", "--patch-file", temp_path_display.as_ref()];
+    let args = [
+        "config",
+        "patch",
+        "--patch-file",
+        temp_path_display.as_ref(),
+    ];
     let result = run_farmctl_authorized(
         &state.farmctl_path.to_string_lossy(),
         &args,
@@ -375,21 +528,25 @@ fn patch_config_privileged(state: &ApiState, patch: SetupConfigPatch) -> Result<
     if !result.ok {
         anyhow::bail!(result.stdout);
     }
-    let parsed: SetupConfig = serde_json::from_str(&result.stdout)
-        .context("Failed to parse patched config response")?;
+    let parsed: SetupConfig =
+        serde_json::from_str(&result.stdout).context("Failed to parse patched config response")?;
     Ok(parsed)
 }
 
 fn write_config_privileged(state: &ApiState, config: &SetupConfig) -> Result<SetupConfig> {
-    let mut temp =
-        NamedTempFile::new().context("Failed to create temp file for config write")?;
+    let mut temp = NamedTempFile::new().context("Failed to create temp file for config write")?;
     let payload = serde_json::to_string_pretty(config)?;
     temp.write_all(payload.as_bytes())
         .context("Failed to write config payload")?;
     let temp_path = temp.path().to_path_buf();
 
     let temp_path_display = temp_path.to_string_lossy();
-    let args = ["config", "write", "--config-file", temp_path_display.as_ref()];
+    let args = [
+        "config",
+        "write",
+        "--config-file",
+        temp_path_display.as_ref(),
+    ];
     let result = run_farmctl_authorized(
         &state.farmctl_path.to_string_lossy(),
         &args,
@@ -399,8 +556,8 @@ fn write_config_privileged(state: &ApiState, config: &SetupConfig) -> Result<Set
     if !result.ok {
         anyhow::bail!(result.stdout);
     }
-    let parsed: SetupConfig = serde_json::from_str(&result.stdout)
-        .context("Failed to parse config write response")?;
+    let parsed: SetupConfig =
+        serde_json::from_str(&result.stdout).context("Failed to parse config write response")?;
     Ok(parsed)
 }
 

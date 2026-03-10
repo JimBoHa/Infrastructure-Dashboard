@@ -8,7 +8,9 @@ use std::path::{Path, PathBuf};
 
 use crate::state::AppState;
 
-const DEFAULT_DEV_ACTIVITY_PATH: &str = "/Users/Shared/FarmDashboard/setup/dev_activity.json";
+const DEFAULT_DEV_ACTIVITY_PATH: &str =
+    "/Users/Shared/InfrastructureDashboard/setup/dev_activity.json";
+const LEGACY_DEV_ACTIVITY_PATH: &str = "/Users/Shared/FarmDashboard/setup/dev_activity.json";
 const DEFAULT_TTL_SECONDS: u64 = 600;
 const MAX_TTL_SECONDS: u64 = 24 * 60 * 60;
 
@@ -40,7 +42,13 @@ fn dev_activity_path() -> PathBuf {
         }
     }
 
-    PathBuf::from(DEFAULT_DEV_ACTIVITY_PATH)
+    let preferred = PathBuf::from(DEFAULT_DEV_ACTIVITY_PATH);
+    let legacy = PathBuf::from(LEGACY_DEV_ACTIVITY_PATH);
+    if preferred.exists() || !legacy.exists() {
+        preferred
+    } else {
+        legacy
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
