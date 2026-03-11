@@ -159,6 +159,7 @@ pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) ->
         .route("/api/status", get(status_handler))
         .route("/api/install", post(install_handler))
         .route("/api/upgrade", post(upgrade_handler))
+        .route("/api/remove-failed-install", post(remove_failed_install_handler))
         .route("/api/rollback", post(rollback_handler))
         .route("/api/health-report", get(health_report_handler))
         .route("/api/diagnostics", post(diagnostics_handler))
@@ -321,6 +322,44 @@ async fn upgrade_handler(State(state): State<Arc<ApiState>>) -> impl IntoRespons
 
 async fn rollback_handler(State(state): State<Arc<ApiState>>) -> impl IntoResponse {
     run_install_action(&state, "rollback").await
+}
+
+async fn remove_failed_install_handler(State(state): State<Arc<ApiState>>) -> impl IntoResponse {
+    let config = match load_config_for_state(&state) {
+        Ok(config) => config,
+        Err(err) => return ui_error_response("install.cleanup.config", err),
+    };
+
+    let farmctl_result = match run_farmctl(
+        &config,
+        &state.config_path,
+        &["uninstall", "--remove-roots", "--yes"],
+        &[],
+    ) {
+        Ok(result) => result,
+        Err(err) => return ui_error_response("install.cleanup.run", err),
+    };
+
+    let message = if farmctl_result.ok {
+        "Removed the failed install. Run readiness again before retrying."
+    } else {
+        "Failed to remove the current install. Review the local setup activity log."
+    };
+    append_activity_log(
+        "install.cleanup",
+        json!({
+            "ok": farmctl_result.ok,
+            "message": message,
+            "farmctl": [farmctl_result.clone()],
+        }),
+    );
+    Json(json!({
+        "ok": farmctl_result.ok,
+        "message": message,
+        "activity_log": activity_log_path(),
+        "farmctl": [farmctl_result],
+    }))
+    .into_response()
 }
 
 async fn run_install_action(state: &ApiState, action: &str) -> impl IntoResponse {

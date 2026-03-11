@@ -216,7 +216,27 @@ const renderInstallState = ({
   detail = "",
   actionLabel = "",
   actionHref = "",
+  actions = [],
 }) => {
+  const actionMarkup = [
+    actionLabel && actionHref
+      ? `<a class="btn primary" href="${actionHref}" target="_blank" rel="noreferrer">${actionLabel}</a>`
+      : "",
+    ...actions.map(
+      (action) => `
+        <button
+          type="button"
+          class="btn ${action.tone || "ghost"}"
+          data-install-action="${action.key}"
+        >
+          ${action.label}
+        </button>
+      `,
+    ),
+  ]
+    .filter(Boolean)
+    .join("");
+
   installOutput.innerHTML = `
     <div class="status-card ${tone}">
       <div class="status-copy">
@@ -224,9 +244,22 @@ const renderInstallState = ({
         <strong>${message}</strong>
         ${detail ? `<span class="summary-note">${detail}</span>` : ""}
       </div>
-      ${actionLabel && actionHref ? `<a class="btn primary" href="${actionHref}" target="_blank" rel="noreferrer">${actionLabel}</a>` : ""}
+      ${actionMarkup ? `<div class="actions">${actionMarkup}</div>` : ""}
     </div>
   `;
+};
+
+const renderFailureRecovery = ({ title, message, detail }) => {
+  renderInstallState({
+    title,
+    tone: "error",
+    message,
+    detail: `${detail} Choose whether to keep the current install for troubleshooting or remove it before retrying.`,
+    actions: [
+      { key: "keep-failed-install", label: "Keep current install", tone: "ghost" },
+      { key: "remove-failed-install", label: "Remove failed install", tone: "primary" },
+    ],
+  });
 };
 
 const apiJson = async (url, options = {}) => {
@@ -345,12 +378,64 @@ const runHealthCheck = async (dashboardUrl = "") => {
   });
   try {
     const data = await apiJson("/api/health-report");
+    if (!data.ok) {
+      const failures = [
+        data?.report?.core_api,
+        data?.report?.dashboard,
+        data?.report?.database,
+        data?.report?.mqtt,
+        data?.report?.redis,
+        data?.report?.qdrant,
+      ]
+        .filter((entry) => entry?.status === "error")
+        .map((entry) => entry.message)
+        .join(" ");
+      renderFailureRecovery({
+        title: "Service check",
+        message: "Service verification failed.",
+        detail: failures || "Detailed diagnostics were saved automatically.",
+      });
+      return;
+    }
     renderHealthReport(data.report || {}, dashboardUrl);
   } catch (err) {
-    renderInstallState({
+    renderFailureRecovery({
       title: "Service check",
-      tone: "error",
       message: "Service verification failed.",
+      detail: err?.message || String(err),
+    });
+  }
+};
+
+const removeFailedInstall = async () => {
+  renderInstallState({
+    title: "Cleanup",
+    tone: "warn",
+    message: "Removing the failed install…",
+    detail: "Stopping services and deleting the current install roots.",
+  });
+  try {
+    const data = await apiJson("/api/remove-failed-install", { method: "POST" });
+    if (!data.ok) {
+      renderFailureRecovery({
+        title: "Cleanup",
+        message: "Cleanup failed.",
+        detail: "The current install could not be removed automatically. Review the local setup activity log.",
+      });
+      return;
+    }
+    showStep(2);
+    await runPreflight();
+    renderInstallState({
+      title: "Cleanup",
+      tone: "ok",
+      message: data.message || "Removed the failed install.",
+      detail: "Readiness has been refreshed. Re-run install after the blocked items are clear.",
+    });
+  } catch (err) {
+    renderFailureRecovery({
+      title: "Cleanup",
+      message: "Cleanup failed.",
       detail: err?.message || String(err),
     });
   }
@@ -376,15 +461,21 @@ const runInstallerAction = async (endpoint, title) => {
     });
 
     const data = await apiJson(endpoint, { method: "POST" });
+    if (!data.ok) {
+      renderFailureRecovery({
+        title,
+        message: data.message || `${title} failed.`,
+        detail: "Detailed diagnostics were saved automatically.",
+      });
+      return;
+    }
     renderInstallState({
       title,
-      tone: data.ok ? "ok" : "error",
+      tone: "ok",
       message: data.message || `${title} complete.`,
-      detail: data.ok
-        ? "Detailed command output was saved automatically for support."
-        : "Review the readiness check or local setup activity log before retrying.",
-      actionLabel: data.ok ? "Open Dashboard" : "",
-      actionHref: data.ok ? data.dashboard_url || "" : "",
+      detail: "Detailed command output was saved automatically for support.",
+      actionLabel: "Open Dashboard",
+      actionHref: data.dashboard_url || "",
     });
 
     if (data.handoff) {
@@ -435,6 +526,24 @@ rollbackBtn.addEventListener("click", () => {
 
 healthBtn.addEventListener("click", () => {
   void runHealthCheck(loadedConfig ? `http://127.0.0.1:${loadedConfig.core_port || 8000}/` : "");
+});
+
+installOutput.addEventListener("click", (event) => {
+  const action = event.target.closest("[data-install-action]")?.dataset.installAction;
+  if (!action) return;
+  if (action === "keep-failed-install") {
+    renderInstallState({
+      title: "Install paused",
+      tone: "warn",
+      message: "The current install files were left in place.",
+      detail: "Review the local setup activity log, or remove the failed install before retrying.",
+      actions: [{ key: "remove-failed-install", label: "Remove failed install", tone: "primary" }],
+    });
+    return;
+  }
+  if (action === "remove-failed-install") {
+    void removeFailedInstall();
+  }
 });
 
 toggleAdvancedBtn.addEventListener("click", () => {
