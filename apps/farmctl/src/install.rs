@@ -459,11 +459,26 @@ pub fn install_bundle(
                 println!(
                     "Bootstrap admin account created (first login requires credentials below):"
                 );
+                println!("  Name: {}", credentials.name);
                 println!("  Email: {}", credentials.email);
                 println!("  Temporary password: {}", credentials.password);
                 println!("  Change this password after signing in (Dashboard → Users).");
+                if config.bootstrap_admin_password.is_some() {
+                    let config_before_clear = config.clone();
+                    config.bootstrap_admin_password = None;
+                    let _ = save_config_if_changed(
+                        &config_path,
+                        &config_before_clear,
+                        &config,
+                        SaveConfigMode::BestEffort,
+                    )?;
+                }
             }
         }
+    }
+
+    if !env_flag("FARM_SETUP_SKIP_LAUNCHD") && config.profile == InstallProfile::Prod {
+        restart_application_services(&config)?;
     }
 
     let previous = state.current_version.clone();
@@ -683,7 +698,8 @@ pub fn health(args: HealthArgs, profile_override: Option<InstallProfile>) -> Res
         && report.dashboard.status == "ok"
         && report.mqtt.status == "ok"
         && report.database.status == "ok"
-        && report.redis.status == "ok";
+        && report.redis.status == "ok"
+        && report.qdrant.status == "ok";
     if args.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
@@ -701,6 +717,7 @@ pub fn health(args: HealthArgs, profile_override: Option<InstallProfile>) -> Res
             report.database.status, report.database.message
         );
         println!("redis: {} ({})", report.redis.status, report.redis.message);
+        println!("qdrant: {} ({})", report.qdrant.status, report.qdrant.message);
     }
     if !ok {
         bail!("health check failed");

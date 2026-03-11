@@ -18,8 +18,6 @@ const DEFAULT_ITERATIONS: u32 = 200_000;
 const SALT_BYTES: usize = 16;
 const DERIVED_BYTES: usize = 32;
 
-pub(crate) const BOOTSTRAP_ADMIN_EMAIL: &str = "admin@infrastructuredashboard.local";
-const BOOTSTRAP_ADMIN_NAME: &str = "Admin";
 const BOOTSTRAP_ADMIN_ROLE: &str = "admin";
 
 const BOOTSTRAP_ADMIN_CAPABILITIES: &[&str] = &[
@@ -40,6 +38,7 @@ const BOOTSTRAP_ADMIN_CAPABILITIES: &[&str] = &[
 ];
 
 pub(crate) struct BootstrapAdminCredentials {
+    pub name: String,
     pub email: String,
     pub password: String,
 }
@@ -58,7 +57,18 @@ pub(crate) fn ensure_bootstrap_admin(
         return Ok(None);
     }
 
-    let password = generate_temp_password();
+    let name = config.bootstrap_admin_name.trim();
+    let email = config.bootstrap_admin_email.trim().to_lowercase();
+    let password = config
+        .bootstrap_admin_password
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(generate_temp_password);
+    if email.is_empty() {
+        anyhow::bail!("Bootstrap admin email cannot be blank");
+    }
     let password_hash = hash_password(&password)?;
     let capabilities_json = serde_json::json!(BOOTSTRAP_ADMIN_CAPABILITIES);
 
@@ -69,8 +79,8 @@ pub(crate) fn ensure_bootstrap_admin(
             VALUES ($1, $2, $3, $4::jsonb, $5)
             "#,
             &[
-                &BOOTSTRAP_ADMIN_NAME,
-                &BOOTSTRAP_ADMIN_EMAIL,
+                &if name.is_empty() { "Admin" } else { name },
+                &email,
                 &BOOTSTRAP_ADMIN_ROLE,
                 &Json(&capabilities_json),
                 &password_hash,
@@ -79,7 +89,12 @@ pub(crate) fn ensure_bootstrap_admin(
         .context("Failed to create bootstrap admin user")?;
 
     Ok(Some(BootstrapAdminCredentials {
-        email: BOOTSTRAP_ADMIN_EMAIL.to_string(),
+        name: if name.is_empty() {
+            "Admin".to_string()
+        } else {
+            name.to_string()
+        },
+        email,
         password,
     }))
 }

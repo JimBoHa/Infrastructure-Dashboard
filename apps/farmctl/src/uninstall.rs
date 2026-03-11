@@ -1,10 +1,16 @@
 use anyhow::{bail, Context, Result};
+use chrono::Utc;
+use postgres::{Client, NoTls};
+use serde_json::json;
+use std::fs::{self, File};
+use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::cli::UninstallArgs;
 use crate::config::{
-    load_config, normalize_config, resolve_config_path, save_config, setup_state_dir,
+    load_config, normalize_config, postgres_connection_string, resolve_config_path, save_config,
+    setup_state_dir,
 };
 use crate::processes;
 use crate::profile::InstallProfile;
@@ -34,6 +40,17 @@ pub fn uninstall(args: UninstallArgs, profile_override: Option<InstallProfile>) 
     if args.remove_roots && !args.yes {
         bail!("Refusing to remove install roots without --yes (use --remove-roots --yes)");
     }
+    if args.preserve_trends_and_sensors && !args.remove_roots {
+        bail!(
+            "Preserving trends/sensors requires --remove-roots so the archive can replace the removed install"
+        );
+    }
+
+    let preserved_archive = if args.preserve_trends_and_sensors {
+        Some(export_trends_and_sensors_archive(&config)?)
+    } else {
+        None
+    };
 
     let target = launchctl_target(&config.profile);
     let target_dir = launchd_target_dir(&config.profile)?;
@@ -123,6 +140,85 @@ pub fn uninstall(args: UninstallArgs, profile_override: Option<InstallProfile>) 
     }
 
     println!("Uninstalled {}", config.install_root);
+    if let Some(path) = preserved_archive {
+        println!(
+            "Preserved trend data + sensor archive at {}",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+fn export_trends_and_sensors_archive(config: &crate::config::SetupConfig) -> Result<PathBuf> {
+    let data_root = PathBuf::from(&config.data_root);
+    let archive_parent = data_root
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("/Users/Shared"));
+    let archive_root = archive_parent.join(format!(
+        "{}-preserved",
+        data_root
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("InfrastructureDashboard")
+    ));
+    fs::create_dir_all(&archive_root)?;
+
+    let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
+    let export_dir = archive_root.join(format!("trend-archive-{timestamp}"));
+    fs::create_dir_all(&export_dir)?;
+
+    let mut client = Client::connect(&postgres_connection_string(&config.database_url), NoTls)
+        .context("Failed to connect to Postgres for uninstall archive export")?;
+
+    let node_count: i64 = client
+        .query_one("SELECT COUNT(*) FROM nodes", &[])?
+        .get(0);
+    let sensor_count: i64 = client
+        .query_one("SELECT COUNT(*) FROM sensors", &[])?
+        .get(0);
+    let metric_count: i64 = client
+        .query_one("SELECT COUNT(*) FROM metrics", &[])?
+        .get(0);
+
+    export_csv(
+        &mut client,
+        "COPY (SELECT id, name, status, created_at FROM nodes ORDER BY name) TO STDOUT WITH CSV HEADER",
+        &export_dir.join("nodes.csv"),
+    )?;
+    export_csv(
+        &mut client,
+        "COPY (SELECT sensor_id, node_id, name, type, unit, interval_seconds, rolling_avg_seconds, config, created_at, deleted_at FROM sensors ORDER BY sensor_id) TO STDOUT WITH CSV HEADER",
+        &export_dir.join("sensors.csv"),
+    )?;
+    export_csv(
+        &mut client,
+        "COPY (SELECT sensor_id, ts, value, quality FROM metrics ORDER BY sensor_id, ts) TO STDOUT WITH CSV HEADER",
+        &export_dir.join("metrics.csv"),
+    )?;
+
+    fs::write(
+        export_dir.join("manifest.json"),
+        serde_json::to_vec_pretty(&json!({
+            "created_at": Utc::now().to_rfc3339(),
+            "install_root": config.install_root,
+            "data_root": config.data_root,
+            "node_count": node_count,
+            "sensor_count": sensor_count,
+            "metric_count": metric_count,
+            "files": ["manifest.json", "nodes.csv", "sensors.csv", "metrics.csv"],
+        }))?,
+    )?;
+
+    Ok(export_dir)
+}
+
+fn export_csv(client: &mut Client, query: &str, output_path: &Path) -> Result<()> {
+    let mut reader = client.copy_out(query)?;
+    let mut output = File::create(output_path)
+        .with_context(|| format!("Failed to create {}", output_path.display()))?;
+    copy(&mut reader, &mut output)
+        .with_context(|| format!("Failed to write {}", output_path.display()))?;
     Ok(())
 }
 

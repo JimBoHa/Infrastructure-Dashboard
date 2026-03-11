@@ -159,6 +159,7 @@ pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) ->
         .route("/api/status", get(status_handler))
         .route("/api/install", post(install_handler))
         .route("/api/upgrade", post(upgrade_handler))
+        .route("/api/uninstall", post(uninstall_handler))
         .route("/api/remove-failed-install", post(remove_failed_install_handler))
         .route("/api/rollback", post(rollback_handler))
         .route("/api/health-report", get(health_report_handler))
@@ -324,16 +325,39 @@ async fn rollback_handler(State(state): State<Arc<ApiState>>) -> impl IntoRespon
     run_install_action(&state, "rollback").await
 }
 
+async fn uninstall_handler(
+    State(state): State<Arc<ApiState>>,
+    Json(payload): Json<Option<serde_json::Value>>,
+) -> impl IntoResponse {
+    let preserve_trends_and_sensors = payload
+        .as_ref()
+        .and_then(|value| value.get("preserve_trends_and_sensors"))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    run_uninstall_action(&state, preserve_trends_and_sensors).await
+}
+
 async fn remove_failed_install_handler(State(state): State<Arc<ApiState>>) -> impl IntoResponse {
+    run_uninstall_action(&state, false).await
+}
+
+async fn run_uninstall_action(
+    state: &ApiState,
+    preserve_trends_and_sensors: bool,
+) -> axum::response::Response {
     let config = match load_config_for_state(&state) {
         Ok(config) => config,
         Err(err) => return ui_error_response("install.cleanup.config", err),
     };
 
+    let mut args = vec!["uninstall", "--remove-roots", "--yes"];
+    if preserve_trends_and_sensors {
+        args.push("--preserve-trends-and-sensors");
+    }
     let farmctl_result = match run_farmctl(
         &config,
         &state.config_path,
-        &["uninstall", "--remove-roots", "--yes"],
+        &args,
         &[],
     ) {
         Ok(result) => result,
@@ -341,7 +365,11 @@ async fn remove_failed_install_handler(State(state): State<Arc<ApiState>>) -> im
     };
 
     let message = if farmctl_result.ok {
-        "Removed the failed install. Run readiness again before retrying."
+        if preserve_trends_and_sensors {
+            "Removed the install and preserved trend data + sensor names in a portable archive."
+        } else {
+            "Removed the failed install. Run readiness again before retrying."
+        }
     } else {
         "Failed to remove the current install. Review the local setup activity log."
     };
@@ -349,6 +377,7 @@ async fn remove_failed_install_handler(State(state): State<Arc<ApiState>>) -> im
         "install.cleanup",
         json!({
             "ok": farmctl_result.ok,
+            "preserve_trends_and_sensors": preserve_trends_and_sensors,
             "message": message,
             "farmctl": [farmctl_result.clone()],
         }),

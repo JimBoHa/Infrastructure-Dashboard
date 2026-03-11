@@ -78,6 +78,14 @@ fn default_mqtt_host() -> String {
     "127.0.0.1".to_string()
 }
 
+fn default_bootstrap_admin_name() -> String {
+    "Admin".to_string()
+}
+
+fn default_bootstrap_admin_email() -> String {
+    "admin@infrastructuredashboard.local".to_string()
+}
+
 fn default_farmctl_path() -> String {
     "farmctl".to_string()
 }
@@ -282,6 +290,12 @@ pub struct SetupConfig {
     pub service_group: String,
     #[serde(default)]
     pub bundle_path: Option<String>,
+    #[serde(default = "default_bootstrap_admin_name")]
+    pub bootstrap_admin_name: String,
+    #[serde(default = "default_bootstrap_admin_email")]
+    pub bootstrap_admin_email: String,
+    #[serde(default)]
+    pub bootstrap_admin_password: Option<String>,
     #[serde(default = "default_farmctl_path")]
     pub farmctl_path: String,
     #[serde(default)]
@@ -322,6 +336,9 @@ pub struct SetupConfigPatch {
     pub service_user: Option<String>,
     pub service_group: Option<String>,
     pub bundle_path: Option<String>,
+    pub bootstrap_admin_name: Option<String>,
+    pub bootstrap_admin_email: Option<String>,
+    pub bootstrap_admin_password: Option<String>,
     pub farmctl_path: Option<String>,
     pub profile: Option<InstallProfile>,
     pub launchd_label_prefix: Option<String>,
@@ -353,6 +370,9 @@ pub fn default_config() -> Result<SetupConfig> {
         service_user: default_service_user(),
         service_group: default_service_group(),
         bundle_path: None,
+        bootstrap_admin_name: default_bootstrap_admin_name(),
+        bootstrap_admin_email: default_bootstrap_admin_email(),
+        bootstrap_admin_password: None,
         farmctl_path: default_farmctl_path(),
         profile: InstallProfile::Prod,
         launchd_label_prefix: default_launchd_label_prefix(),
@@ -539,6 +559,30 @@ pub fn patch_config(path: &Path, patch: SetupConfigPatch) -> Result<SetupConfig>
             config.bundle_path = Some(value);
         }
     }
+    if let Some(value) = patch.bootstrap_admin_name {
+        let trimmed = value.trim();
+        config.bootstrap_admin_name = if trimmed.is_empty() {
+            default_bootstrap_admin_name()
+        } else {
+            trimmed.to_string()
+        };
+    }
+    if let Some(value) = patch.bootstrap_admin_email {
+        let trimmed = value.trim();
+        config.bootstrap_admin_email = if trimmed.is_empty() {
+            default_bootstrap_admin_email()
+        } else {
+            trimmed.to_string()
+        };
+    }
+    if let Some(value) = patch.bootstrap_admin_password {
+        let trimmed = value.trim().to_string();
+        config.bootstrap_admin_password = if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        };
+    }
     if let Some(value) = patch.farmctl_path {
         config.farmctl_path = value;
     }
@@ -693,6 +737,17 @@ fn apply_profile_defaults(config: &mut SetupConfig) -> Result<()> {
     if config.setup_port == 0 {
         config.setup_port = DEFAULT_SETUP_PORT;
     }
+    if config.bootstrap_admin_name.trim().is_empty() {
+        config.bootstrap_admin_name = default_bootstrap_admin_name();
+    }
+    if config.bootstrap_admin_email.trim().is_empty() {
+        config.bootstrap_admin_email = default_bootstrap_admin_email();
+    }
+    config.bootstrap_admin_password = config
+        .bootstrap_admin_password
+        .as_ref()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
 
     // In production, nodes and non-controller clients must be able to reach the controller's MQTT
     // broker. Defaulting to localhost breaks remote nodes, so we auto-detect a best-guess LAN IP.

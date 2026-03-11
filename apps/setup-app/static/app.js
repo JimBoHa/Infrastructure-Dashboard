@@ -32,6 +32,9 @@ const SAVE_FIELDS = new Set([
   "redis_port",
   "database_url",
   "backup_retention_days",
+  "bootstrap_admin_name",
+  "bootstrap_admin_email",
+  "bootstrap_admin_password",
 ]);
 
 const showStep = (index) => {
@@ -129,12 +132,20 @@ const renderConfigSummaries = (config) => {
       config.data_root,
       `Backups save to ${config.backup_root || "the default backup folder"}.`,
     ),
+    summaryCard(
+      "First sign-in",
+      config.bootstrap_admin_email || "Enter an admin email",
+      config.bootstrap_admin_password
+        ? "The password shown in Settings will be used for the first login."
+        : "Set an admin password before you run Install.",
+    ),
   ].join("");
 
   settingsSummary.innerHTML = [
     summaryCard("App files", config.install_root),
     summaryCard("Data storage", config.data_root),
     summaryCard("Backups", config.backup_root),
+    summaryCard("Admin login", config.bootstrap_admin_email || "Not set"),
     summaryCard("Controller URL", `http://127.0.0.1:${config.core_port || 8000}/`),
   ].join("");
 };
@@ -257,6 +268,11 @@ const renderFailureRecovery = ({ title, message, detail }) => {
     detail: `${detail} Choose whether to keep the current install for troubleshooting or remove it before retrying.`,
     actions: [
       { key: "keep-failed-install", label: "Keep current install", tone: "ghost" },
+      {
+        key: "remove-failed-install-preserve",
+        label: "Remove but keep trend archive",
+        tone: "ghost",
+      },
       { key: "remove-failed-install", label: "Remove failed install", tone: "primary" },
     ],
   });
@@ -301,6 +317,23 @@ const ensureReadyForInstall = async () => {
       tone: "warn",
       message: "Fix the readiness items before continuing.",
       detail: blockingInstallDetail(data?.checks || []),
+    });
+    return false;
+  }
+  return true;
+};
+
+const ensureBootstrapCredentials = (title) => {
+  const email = form.elements.namedItem("bootstrap_admin_email")?.value?.trim() || "";
+  const password = form.elements.namedItem("bootstrap_admin_password")?.value?.trim() || "";
+  if (!email || !password) {
+    showStep(1);
+    renderInstallState({
+      title,
+      tone: "warn",
+      message: "Add first-login credentials before installing.",
+      detail:
+        "Enter the admin email and password in Recommended settings so the first sign-in works immediately after the install.",
     });
     return false;
   }
@@ -407,15 +440,25 @@ const runHealthCheck = async (dashboardUrl = "") => {
   }
 };
 
-const removeFailedInstall = async () => {
+const removeFailedInstall = async (preserveTrendsAndSensors = false) => {
   renderInstallState({
     title: "Cleanup",
     tone: "warn",
-    message: "Removing the failed install…",
-    detail: "Stopping services and deleting the current install roots.",
+    message: preserveTrendsAndSensors
+      ? "Removing the install and preserving trend data…"
+      : "Removing the failed install…",
+    detail: preserveTrendsAndSensors
+      ? "Exporting trend data + sensor names, then deleting the current install roots."
+      : "Stopping services and deleting the current install roots.",
   });
   try {
-    const data = await apiJson("/api/remove-failed-install", { method: "POST" });
+    const data = await apiJson("/api/uninstall", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preserve_trends_and_sensors: preserveTrendsAndSensors,
+      }),
+    });
     if (!data.ok) {
       renderFailureRecovery({
         title: "Cleanup",
@@ -448,6 +491,9 @@ const runInstallerAction = async (endpoint, title) => {
     message: "Saving settings and preparing the install…",
   });
   try {
+    if (endpoint === "/api/install" && !ensureBootstrapCredentials(title)) {
+      return;
+    }
     await saveConfig();
     if (!(await ensureReadyForInstall())) {
       return;
@@ -542,7 +588,10 @@ installOutput.addEventListener("click", (event) => {
     return;
   }
   if (action === "remove-failed-install") {
-    void removeFailedInstall();
+    void removeFailedInstall(false);
+  }
+  if (action === "remove-failed-install-preserve") {
+    void removeFailedInstall(true);
   }
 });
 

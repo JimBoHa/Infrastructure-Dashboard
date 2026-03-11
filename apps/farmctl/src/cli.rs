@@ -64,6 +64,8 @@ pub struct UninstallArgs {
     #[arg(long, default_value_t = false)]
     pub remove_roots: bool,
     #[arg(long, default_value_t = false)]
+    pub preserve_trends_and_sensors: bool,
+    #[arg(long, default_value_t = false)]
     pub yes: bool,
 }
 

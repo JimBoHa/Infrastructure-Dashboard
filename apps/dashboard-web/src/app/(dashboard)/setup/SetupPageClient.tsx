@@ -17,6 +17,7 @@ import { useWeatherForecastDraft } from "./hooks/useWeatherForecastDraft";
 import AiAnomalyDetectionSection from "./sections/AiAnomalyDetectionSection";
 import AnalyticsFeedsSection from "./sections/AnalyticsFeedsSection";
 import ControllerConfigurationSection from "./sections/ControllerConfigurationSection";
+import DeviceOnboardingSection from "./sections/DeviceOnboardingSection";
 import HealthSnapshotSection from "./sections/HealthSnapshotSection";
 import HyperlocalWeatherSection from "./sections/HyperlocalWeatherSection";
 import InstallerActionsSection from "./sections/InstallerActionsSection";
@@ -109,6 +110,8 @@ export default function SetupPageClient() {
       </section>
 
       <ControllerConfigurationSection onMessage={setMessage} />
+
+      <DeviceOnboardingSection canEdit={canEdit} onMessage={setMessage} />
 
       <HyperlocalWeatherSection model={weatherDraft} />
 
