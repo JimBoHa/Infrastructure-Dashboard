@@ -729,26 +729,61 @@ def spawn_process_group(
     )
 
 
-def stop_process_group(proc: subprocess.Popen, *, timeout: float) -> None:
+def process_group_id(proc: subprocess.Popen) -> int | None:
+    if sys.platform == "win32":
+        return None
+    try:
+        return os.getpgid(proc.pid)
+    except (ProcessLookupError, PermissionError):
+        return None
+
+
+def signal_managed_process(proc: subprocess.Popen, sig: signal.Signals) -> None:
     if proc.poll() is not None:
         return
     if sys.platform != "win32":
-        try:
-            os.killpg(proc.pid, signal.SIGINT)
-        except ProcessLookupError:
-            return
-    else:
-        proc.send_signal(signal.SIGINT)
+        pgid = process_group_id(proc)
+        if pgid is not None:
+            try:
+                os.killpg(pgid, sig)
+                return
+            except ProcessLookupError:
+                return
+            except PermissionError:
+                pass
+    try:
+        proc.send_signal(sig)
+    except ProcessLookupError:
+        return
+
+
+def kill_managed_process(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    if sys.platform != "win32":
+        pgid = process_group_id(proc)
+        if pgid is not None:
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+                return
+            except ProcessLookupError:
+                return
+            except PermissionError:
+                pass
+    try:
+        proc.kill()
+    except ProcessLookupError:
+        return
+
+
+def stop_process_group(proc: subprocess.Popen, *, timeout: float) -> None:
+    if proc.poll() is not None:
+        return
+    signal_managed_process(proc, signal.SIGINT)
     try:
         proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        if sys.platform != "win32":
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                return
-        else:
-            proc.kill()
+        kill_managed_process(proc)
         proc.wait(timeout=5)
 
 
@@ -1032,23 +1067,11 @@ def stop_processes(processes: list[tuple[str, subprocess.Popen]]) -> None:
     for name, proc in reversed(processes):
         if proc.poll() is not None:
             continue
-        if sys.platform != "win32":
-            try:
-                os.killpg(proc.pid, signal.SIGINT)
-            except ProcessLookupError:
-                continue
-        else:
-            proc.send_signal(signal.SIGINT)
+        signal_managed_process(proc, signal.SIGINT)
         try:
             proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            if sys.platform != "win32":
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    continue
-            else:
-                proc.kill()
+            kill_managed_process(proc)
             proc.wait(timeout=5)
 
 
