@@ -605,8 +605,26 @@ pub fn auto_detect_config(config: &mut SetupConfig) -> Result<()> {
             config.farmctl_path = exe.display().to_string();
         }
     }
-    if let Some(path) = detect_runtime_bundle_path() {
-        config.bundle_path = Some(path.display().to_string());
+    let explicit_bundle = config
+        .bundle_path
+        .as_deref()
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from);
+    let explicit_bundle_exists = explicit_bundle
+        .as_ref()
+        .is_some_and(|path| path.exists());
+
+    if !explicit_bundle_exists {
+        if let Some(path) = detect_runtime_bundle_path() {
+            config.bundle_path = Some(path.display().to_string());
+        } else if config
+            .bundle_path
+            .as_deref()
+            .is_some_and(|path| path.trim().is_empty() || !Path::new(path).exists())
+        {
+            config.bundle_path = None;
+        }
     } else if config
         .bundle_path
         .as_deref()
@@ -987,6 +1005,35 @@ mod tests {
                 assert_eq!(
                     config.bundle_path.as_deref(),
                     Some(bundle_path.to_string_lossy().as_ref())
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn normalize_config_preserves_explicit_existing_bundle_path_over_runtime_bundle() {
+        let temp = tempfile::tempdir().unwrap();
+        let runtime_bundle = temp
+            .path()
+            .join("InfrastructureDashboardController-0.1.3.dmg");
+        let explicit_bundle = temp
+            .path()
+            .join("InfrastructureDashboardController-0.1.4.dmg");
+        fs::write(&runtime_bundle, b"runtime").unwrap();
+        fs::write(&explicit_bundle, b"explicit").unwrap();
+
+        with_env_var(
+            "FARM_SETUP_BUNDLE_PATH",
+            Some(runtime_bundle.to_string_lossy().as_ref()),
+            || {
+                let mut config = default_config().unwrap();
+                config.bundle_path = Some(explicit_bundle.to_string_lossy().to_string());
+
+                normalize_config(&mut config, None).unwrap();
+
+                assert_eq!(
+                    config.bundle_path.as_deref(),
+                    Some(explicit_bundle.to_string_lossy().as_ref())
                 );
             },
         );
