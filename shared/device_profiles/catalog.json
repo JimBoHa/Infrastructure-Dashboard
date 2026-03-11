@@ -507,19 +507,19 @@
       "models": [
         {
           "id": "setra_power_meter_generic",
-          "name": "Setra Power Meter (Modbus)",
+          "name": "Setra Power Meter / Power Squad (Modbus)",
           "since_year": 2015,
           "protocols": [
             "modbus_tcp"
           ],
           "points": [
             {
-              "name": "Voltage L-L",
-              "metric": "voltage_ll_v",
+              "name": "Voltage L1-N",
+              "metric": "voltage_l1_n_v",
               "sensor_type": "voltage",
               "unit": "V",
               "protocol": "modbus_tcp",
-              "register": 40001,
+              "register": 30104,
               "data_type": "f32_be",
               "scale": 1.0
             },
@@ -529,7 +529,27 @@
               "sensor_type": "current",
               "unit": "A",
               "protocol": "modbus_tcp",
-              "register": 40005,
+              "register": 30352,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Real Power Total",
+              "metric": "real_power_total_kw",
+              "sensor_type": "power",
+              "unit": "kW",
+              "protocol": "modbus_tcp",
+              "register": 30354,
+              "data_type": "f32_be",
+              "scale": 1.0
+            },
+            {
+              "name": "Energy Total",
+              "metric": "energy_total_kwh",
+              "sensor_type": "energy",
+              "unit": "kWh",
+              "protocol": "modbus_tcp",
+              "register": 30324,
               "data_type": "f32_be",
               "scale": 1.0
             }

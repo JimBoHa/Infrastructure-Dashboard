@@ -10,13 +10,13 @@ use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use tokio::time::timeout;
+use tokio_modbus::prelude::Reader;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 use tokio_rustls::TlsConnector;
 use tokio_util::sync::CancellationToken;
 use tracing::warn;
 use uuid::Uuid;
-use tokio_modbus::prelude::Reader;
 
 use crate::device_catalog::{find_model, DeviceModel, DevicePoint};
 use crate::ids;
@@ -132,8 +132,7 @@ pub async fn poll_device_by_id(state: &AppState, node_id: Uuid) -> Result<(Strin
     .context("failed to load external device")?;
     let mut config =
         parse_external_device_config(&device.config.0).context("invalid device config")?;
-    let model =
-        find_model(&config.vendor_id, &config.model_id).context("unknown device model")?;
+    let model = find_model(&config.vendor_id, &config.model_id).context("unknown device model")?;
     if let Some(points) = discover_device_points(state, &device, &config, &model).await? {
         config.discovered_points = Some(points);
         update_device_config(state, device.id, &config).await?;
@@ -145,20 +144,12 @@ pub async fn poll_device_by_id(state: &AppState, node_id: Uuid) -> Result<(Strin
 
 pub async fn poll_device(state: &AppState, device: &ExternalDeviceRow) -> Result<()> {
     let config = parse_external_device_config(&device.config.0).context("invalid device config")?;
-    let model =
-        find_model(&config.vendor_id, &config.model_id).context("unknown device model")?;
+    let model = find_model(&config.vendor_id, &config.model_id).context("unknown device model")?;
     let poll_interval_seconds = config.poll_interval_seconds.unwrap_or(30).max(1);
     let now = Utc::now();
     let points = points_for_device(&config, &model);
 
-    ensure_device_sensors(
-        state,
-        device,
-        &config,
-        &points,
-        poll_interval_seconds,
-    )
-    .await?;
+    ensure_device_sensors(state, device, &config, &points, poll_interval_seconds).await?;
 
     match config.protocol.as_str() {
         "modbus_tcp" => poll_modbus_device(state, device, &config, &points, now).await?,
@@ -302,10 +293,7 @@ async fn poll_modbus_device(
     points: &[DevicePoint],
     now: DateTime<Utc>,
 ) -> Result<()> {
-    let host = config
-        .host
-        .as_ref()
-        .context("modbus device missing host")?;
+    let host = config.host.as_ref().context("modbus device missing host")?;
     let port = config.port.unwrap_or(502);
     let socket_addr: SocketAddr = format!("{}:{}", host, port)
         .parse()
@@ -349,19 +337,37 @@ async fn read_modbus_value(
     register: u32,
     data_type: &str,
 ) -> Result<f64> {
-    let addr = register.saturating_sub(1) as u16;
+    let (addr, use_input_registers) = if (30001..=39999).contains(&register) {
+        (register.saturating_sub(30001) as u16, true)
+    } else if (40001..=49999).contains(&register) {
+        (register.saturating_sub(40001) as u16, false)
+    } else {
+        (register.saturating_sub(1) as u16, false)
+    };
     match data_type {
         "u16" => {
-            let values = ctx.read_holding_registers(addr, 1).await?;
+            let values = if use_input_registers {
+                ctx.read_input_registers(addr, 1).await?
+            } else {
+                ctx.read_holding_registers(addr, 1).await?
+            };
             Ok(values.get(0).copied().unwrap_or(0) as f64)
         }
         "i16" => {
-            let values = ctx.read_holding_registers(addr, 1).await?;
+            let values = if use_input_registers {
+                ctx.read_input_registers(addr, 1).await?
+            } else {
+                ctx.read_holding_registers(addr, 1).await?
+            };
             let raw = values.get(0).copied().unwrap_or(0);
             Ok(i16::from_be_bytes(raw.to_be_bytes()) as f64)
         }
         "u32" | "i32" | "f32_be" => {
-            let values = ctx.read_holding_registers(addr, 2).await?;
+            let values = if use_input_registers {
+                ctx.read_input_registers(addr, 2).await?
+            } else {
+                ctx.read_holding_registers(addr, 2).await?
+            };
             let hi = values.get(0).copied().unwrap_or(0);
             let lo = values.get(1).copied().unwrap_or(0);
             let combined = ((hi as u32) << 16) | (lo as u32);
@@ -373,7 +379,11 @@ async fn read_modbus_value(
             }
         }
         _ => {
-            let values = ctx.read_holding_registers(addr, 1).await?;
+            let values = if use_input_registers {
+                ctx.read_input_registers(addr, 1).await?
+            } else {
+                ctx.read_holding_registers(addr, 1).await?
+            };
             Ok(values.get(0).copied().unwrap_or(0) as f64)
         }
     }
@@ -386,10 +396,7 @@ async fn poll_snmp_device(
     points: &[DevicePoint],
     now: DateTime<Utc>,
 ) -> Result<()> {
-    let host = config
-        .host
-        .as_ref()
-        .context("snmp device missing host")?;
+    let host = config.host.as_ref().context("snmp device missing host")?;
     let port = config.port.unwrap_or(161);
     let community = config
         .snmp_community
@@ -463,7 +470,10 @@ fn parse_snmp_oid(oid: &str) -> Result<Vec<u32>> {
         if part.is_empty() {
             continue;
         }
-        parts.push(part.parse::<u32>().with_context(|| format!("invalid OID segment {part}"))?);
+        parts.push(
+            part.parse::<u32>()
+                .with_context(|| format!("invalid OID segment {part}"))?,
+        );
     }
     if parts.is_empty() {
         Err(anyhow::anyhow!("empty OID"))
@@ -584,7 +594,10 @@ async fn discover_device_points(
                     data_type: None,
                     scale: None,
                     oid: None,
-                    path: Some(format!("OUTPUT,{},{}", output.integration_id, output.output_id)),
+                    path: Some(format!(
+                        "OUTPUT,{},{}",
+                        output.integration_id, output.output_id
+                    )),
                     json_pointer: None,
                     bacnet_object: None,
                 })
@@ -592,14 +605,12 @@ async fn discover_device_points(
             Ok(Some(points))
         }
         "lutron_leap" => {
-            let points = discover_lutron_leap_points(config)
-                .await
-                .with_context(|| {
-                    format!(
-                        "failed to discover LEAP points for device {} ({})",
-                        device.name, model.id
-                    )
-                })?;
+            let points = discover_lutron_leap_points(config).await.with_context(|| {
+                format!(
+                    "failed to discover LEAP points for device {} ({})",
+                    device.name, model.id
+                )
+            })?;
             if points.is_empty() {
                 Ok(None)
             } else {
@@ -620,7 +631,9 @@ async fn poll_lutron_lip_device(
     let host = config.host.as_ref().context("LIP device missing host")?;
     let port = config.port.unwrap_or(23);
     let addr = format!("{}:{}", host, port);
-    let stream = TcpStream::connect(addr).await.context("LIP connect failed")?;
+    let stream = TcpStream::connect(addr)
+        .await
+        .context("LIP connect failed")?;
     let (reader, mut writer) = tokio::io::split(stream);
     let mut reader = BufReader::new(reader);
 
@@ -642,14 +655,25 @@ async fn poll_lutron_lip_device(
         writer.flush().await?;
 
         let mut line = String::new();
-        let response = timeout(std::time::Duration::from_secs(3), reader.read_line(&mut line))
-            .await
-            .context("LIP read timed out")??;
+        let response = timeout(
+            std::time::Duration::from_secs(3),
+            reader.read_line(&mut line),
+        )
+        .await
+        .context("LIP read timed out")??;
         if response == 0 {
             continue;
         }
         if let Some(value) = parse_lip_output_value(&line) {
-            insert_metric(state, now, device.id, &config.model_id, &point.metric, value).await?;
+            insert_metric(
+                state,
+                now,
+                device.id,
+                &config.model_id,
+                &point.metric,
+                value,
+            )
+            .await?;
         }
     }
 
@@ -683,12 +707,17 @@ async fn poll_lutron_leap_device(
                 Some(pointer) => pointer,
                 None => continue,
             };
-            let value = response
-                .pointer(json_pointer)
-                .and_then(leap_value_to_f64);
+            let value = response.pointer(json_pointer).and_then(leap_value_to_f64);
             if let Some(value) = value {
-                insert_metric(state, now, device.id, &config.model_id, &point.metric, value)
-                    .await?;
+                insert_metric(
+                    state,
+                    now,
+                    device.id,
+                    &config.model_id,
+                    &point.metric,
+                    value,
+                )
+                .await?;
             }
         }
     }
@@ -705,7 +734,11 @@ async fn lip_login(
     let mut line = String::new();
     for _ in 0..4 {
         line.clear();
-        let read = timeout(std::time::Duration::from_secs(2), reader.read_line(&mut line)).await;
+        let read = timeout(
+            std::time::Duration::from_secs(2),
+            reader.read_line(&mut line),
+        )
+        .await;
         let Ok(Ok(count)) = read else { continue };
         if count == 0 {
             break;
@@ -713,12 +746,16 @@ async fn lip_login(
         let lower = line.to_ascii_lowercase();
         if lower.contains("login") {
             if let Some(username) = username {
-                writer.write_all(format!("{}\r\n", username).as_bytes()).await?;
+                writer
+                    .write_all(format!("{}\r\n", username).as_bytes())
+                    .await?;
                 writer.flush().await?;
             }
         } else if lower.contains("password") {
             if let Some(password) = password {
-                writer.write_all(format!("{}\r\n", password).as_bytes()).await?;
+                writer
+                    .write_all(format!("{}\r\n", password).as_bytes())
+                    .await?;
                 writer.flush().await?;
             }
         }
@@ -779,7 +816,11 @@ fn parse_lutron_integration_report(report: &str) -> Vec<LipOutput> {
                 continue;
             }
             let integration_id = if numbers.len() > 1 { numbers[0] } else { 1 };
-            let output_id = if numbers.len() > 1 { numbers[1] } else { numbers[0] };
+            let output_id = if numbers.len() > 1 {
+                numbers[1]
+            } else {
+                numbers[0]
+            };
             (integration_id, output_id, format!("Output {}", output_id))
         };
         if output_id == 0 {
@@ -803,7 +844,11 @@ struct LeapConnection {
     writer: tokio::io::WriteHalf<tokio_rustls::client::TlsStream<TcpStream>>,
 }
 
-async fn leap_connect(host: &str, port: u16, config: &ExternalDeviceConfig) -> Result<LeapConnection> {
+async fn leap_connect(
+    host: &str,
+    port: u16,
+    config: &ExternalDeviceConfig,
+) -> Result<LeapConnection> {
     let cert_pem = config
         .leap_client_cert_pem
         .as_deref()
@@ -836,7 +881,9 @@ async fn leap_connect(host: &str, port: u16, config: &ExternalDeviceConfig) -> R
 
     let connector = TlsConnector::from(Arc::new(tls_config));
     let addr = format!("{}:{}", host, port);
-    let stream = TcpStream::connect(addr).await.context("LEAP connect failed")?;
+    let stream = TcpStream::connect(addr)
+        .await
+        .context("LEAP connect failed")?;
     let server_name = ServerName::try_from(host.to_string()).context("invalid LEAP host name")?;
     let tls = connector
         .connect(server_name, stream)
@@ -865,9 +912,12 @@ async fn leap_read_request(connection: &mut LeapConnection, url: &str) -> Result
     let mut line = String::new();
     loop {
         line.clear();
-        let read = timeout(std::time::Duration::from_secs(5), connection.reader.read_line(&mut line))
-            .await
-            .context("LEAP response timeout")??;
+        let read = timeout(
+            std::time::Duration::from_secs(5),
+            connection.reader.read_line(&mut line),
+        )
+        .await
+        .context("LEAP response timeout")??;
         if read == 0 {
             return Err(anyhow::anyhow!("LEAP connection closed"));
         }
@@ -990,7 +1040,10 @@ async fn discover_leap_zones(connection: &mut LeapConnection) -> Result<Vec<Leap
         let mut entries = Vec::new();
         for zone in zone_defs {
             let href = zone.get("href").and_then(|value| value.as_str());
-            let name = zone.get("Name").and_then(|value| value.as_str()).unwrap_or("");
+            let name = zone
+                .get("Name")
+                .and_then(|value| value.as_str())
+                .unwrap_or("");
             if let Some(href) = href {
                 entries.push(LeapZone {
                     href: href.to_string(),
@@ -1011,7 +1064,10 @@ async fn discover_leap_zones(connection: &mut LeapConnection) -> Result<Vec<Leap
         .unwrap_or_default();
     let mut zones = Vec::new();
     for area in area_defs {
-        let href = area.get("href").and_then(|value| value.as_str()).unwrap_or("");
+        let href = area
+            .get("href")
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
         if href.is_empty() {
             continue;
         }
@@ -1026,7 +1082,10 @@ async fn discover_leap_zones(connection: &mut LeapConnection) -> Result<Vec<Leap
         {
             for zone in zone_defs {
                 let href = zone.get("href").and_then(|value| value.as_str());
-                let name = zone.get("Name").and_then(|value| value.as_str()).unwrap_or("");
+                let name = zone
+                    .get("Name")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("");
                 if let Some(href) = href {
                     zones.push(LeapZone {
                         href: href.to_string(),

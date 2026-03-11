@@ -18,6 +18,13 @@ import {
 import type { Message } from "../types";
 
 const MANAGED_VENDOR_IDS = new Set(["generator_ats"]);
+const SUPPORTED_EXTERNAL_PROTOCOLS = new Set([
+  "modbus_tcp",
+  "snmp",
+  "http_json",
+  "lutron_lip",
+  "lutron_leap",
+]);
 const HIGHLIGHTED_INTEGRATIONS = [
   "Emporia Cloud",
   "Renogy BT-2",
@@ -49,7 +56,15 @@ export default function DeviceOnboardingSection({
 
   const supportedVendors = useMemo(() => {
     const vendors = externalCatalogQuery.data?.vendors ?? [];
-    return vendors.filter((vendor) => !MANAGED_VENDOR_IDS.has(vendor.id));
+    return vendors
+      .filter((vendor) => !MANAGED_VENDOR_IDS.has(vendor.id))
+      .map((vendor) => ({
+        ...vendor,
+        models: vendor.models.filter((model) =>
+          model.protocols.some((protocol) => SUPPORTED_EXTERNAL_PROTOCOLS.has(protocol)),
+        ),
+      }))
+      .filter((vendor) => vendor.models.length > 0);
   }, [externalCatalogQuery.data]);
 
   const integratedDeviceCount = externalDevicesQuery.data?.length ?? 0;

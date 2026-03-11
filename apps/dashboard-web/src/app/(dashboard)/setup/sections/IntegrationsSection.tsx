@@ -45,6 +45,14 @@ type CredentialDefinition = {
   hint: string;
 };
 
+const SUPPORTED_EXTERNAL_PROTOCOLS = new Set([
+  "modbus_tcp",
+  "snmp",
+  "http_json",
+  "lutron_lip",
+  "lutron_leap",
+]);
+
 const credentialCatalog: CredentialDefinition[] = [
   {
     name: "emporia",
@@ -133,7 +141,17 @@ export default function IntegrationsSection({
 
   const externalVendors = useMemo(() => {
     const vendors = externalCatalogQuery.data?.vendors ?? [];
-    return vendors;
+    return vendors
+      .map((vendor) => ({
+        ...vendor,
+        models: vendor.models
+          .map((model) => ({
+            ...model,
+            protocols: model.protocols.filter((protocol) => SUPPORTED_EXTERNAL_PROTOCOLS.has(protocol)),
+          }))
+          .filter((model) => model.protocols.length > 0),
+      }))
+      .filter((vendor) => vendor.models.length > 0);
   }, [externalCatalogQuery.data]);
 
   const selectedVendor = useMemo(() => {
@@ -1029,10 +1047,15 @@ export default function IntegrationsSection({
                 <p className="mt-2 text-xs text-muted-foreground">
                   Known match: Setra Power Squad meters should use{" "}
                   <span className="font-medium text-card-foreground">
-                    Setra → Setra Power Meter (Modbus)
+                    Setra → Setra Power Meter / Power Squad (Modbus)
                   </span>
                   . Lutron controllers use the Lutron LIP or LEAP profiles, and Megatron water
                   treatment controllers use the Megatron Modbus profile.
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  BACnet/IP profiles are hidden here until the backend BACnet poller exists. The
+                  current release only supports Modbus TCP, SNMP, HTTP JSON, Lutron LIP, and
+                  Lutron LEAP for external devices.
                 </p>
               </>
             )}
