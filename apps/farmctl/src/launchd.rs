@@ -4,7 +4,7 @@ use plist::{Dictionary as PlistDictionary, Value as PlistValue};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::config::{default_config_path, env_flag, setup_state_dir, SetupConfig};
 use crate::constants::DEFAULT_SETUP_HOST;
@@ -39,6 +39,8 @@ pub struct LaunchdPlistEntry {
     pub target_path: String,
 }
 
+const SETUP_DAEMON_SUFFIX: &str = ".setup-daemon";
+
 fn is_root() -> bool {
     unsafe { geteuid() == 0 }
 }
@@ -70,6 +72,73 @@ fn launchctl_target(config: &SetupConfig) -> Option<String> {
 fn label_for(config: &SetupConfig, suffix: &str) -> String {
     let prefix = config.launchd_label_prefix.trim_end_matches('.');
     format!("{prefix}.{suffix}")
+}
+
+fn is_setup_daemon_label(label: &str) -> bool {
+    label.ends_with(SETUP_DAEMON_SUFFIX)
+}
+
+fn should_defer_setup_daemon_bootstrap(config: &SetupConfig, target: &Option<String>) -> bool {
+    env_flag("FARM_SETUP_BOOTSTRAP")
+        && config.profile == InstallProfile::Prod
+        && target.as_deref() == Some("system")
+}
+
+fn shell_quote(value: &str) -> String {
+    let mut out = String::with_capacity(value.len() + 2);
+    out.push('\'');
+    for ch in value.chars() {
+        if ch == '\'' {
+            out.push_str("'\\''");
+        } else {
+            out.push(ch);
+        }
+    }
+    out.push('\'');
+    out
+}
+
+fn deferred_setup_daemon_bootstrap_shell(target: &str, entry: &LaunchdPlistEntry) -> String {
+    let label_target = format!("{target}/{}", entry.label);
+    format!(
+        "(sleep 2; \
+launchctl bootout {target_q} {path_q} >/dev/null 2>&1 || true; \
+launchctl bootstrap {target_q} {path_q} >/dev/null 2>&1; \
+launchctl enable {label_q} >/dev/null 2>&1 || true; \
+launchctl kickstart -k {label_q} >/dev/null 2>&1 || true) \
+</dev/null >/dev/null 2>&1 &",
+        target_q = shell_quote(target),
+        path_q = shell_quote(&entry.target_path),
+        label_q = shell_quote(&label_target),
+    )
+}
+
+pub fn schedule_deferred_setup_daemon_bootstrap(config: &SetupConfig) -> Result<()> {
+    let target = launchctl_target(config);
+    if !should_defer_setup_daemon_bootstrap(config, &target) {
+        return Ok(());
+    }
+
+    let Some(target) = target else {
+        return Ok(());
+    };
+    let plan = generate_plan(config)?;
+    let Some(entry) = plan
+        .plists
+        .iter()
+        .find(|entry| is_setup_daemon_label(&entry.label))
+    else {
+        return Ok(());
+    };
+
+    let script = deferred_setup_daemon_bootstrap_shell(&target, entry);
+    Command::new("/bin/sh")
+        .arg("-lc")
+        .arg(script)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+    Ok(())
 }
 
 fn launchd_payload(
@@ -449,6 +518,7 @@ pub fn apply_launchd(config: &SetupConfig) -> Result<Vec<CommandResult>> {
     let plan = generate_plan(config)?;
     let target_dir = PathBuf::from(&plan.target_dir);
     let target = launchctl_target(config);
+    let defer_setup_daemon = should_defer_setup_daemon_bootstrap(config, &target);
 
     let mut results = Vec::new();
     for entry in plan.plists {
@@ -467,6 +537,20 @@ pub fn apply_launchd(config: &SetupConfig) -> Result<Vec<CommandResult>> {
         }
 
         if let Some(target_dir) = &target {
+            if defer_setup_daemon && is_setup_daemon_label(&entry.label) {
+                results.push(CommandResult {
+                    command: format!(
+                        "defer launchctl bootstrap {} {}",
+                        target_dir, entry.target_path
+                    ),
+                    ok: true,
+                    stdout: "Deferred setup-daemon bootstrap until installer handoff completes."
+                        .to_string(),
+                    stderr: String::new(),
+                    returncode: 0,
+                });
+                continue;
+            }
             let use_sudo = target_dir == "system" && !is_root();
             let mut bootout_cmd = if use_sudo {
                 let mut cmd = Command::new("sudo");
@@ -824,5 +908,35 @@ mod tests {
                 entry.staged_path
             );
         }
+    }
+
+    #[test]
+    fn prod_bootstrap_defers_setup_daemon_handoff() {
+        let target = Some("system".to_string());
+        let mut config = default_config().unwrap();
+        config.profile = InstallProfile::Prod;
+
+        let previous = std::env::var("FARM_SETUP_BOOTSTRAP").ok();
+        std::env::set_var("FARM_SETUP_BOOTSTRAP", "1");
+        assert!(should_defer_setup_daemon_bootstrap(&config, &target));
+        match previous {
+            Some(value) => std::env::set_var("FARM_SETUP_BOOTSTRAP", value),
+            None => std::env::remove_var("FARM_SETUP_BOOTSTRAP"),
+        }
+    }
+
+    #[test]
+    fn deferred_setup_daemon_bootstrap_shell_uses_launchctl_handoff() {
+        let entry = LaunchdPlistEntry {
+            label: "com.infrastructuredashboard.setup-daemon".to_string(),
+            staged_path: "/tmp/staged.plist".to_string(),
+            target_path: "/Library/LaunchDaemons/com.infrastructuredashboard.setup-daemon.plist"
+                .to_string(),
+        };
+        let script = deferred_setup_daemon_bootstrap_shell("system", &entry);
+        assert!(script.contains("sleep 2;"));
+        assert!(script.contains("launchctl bootstrap"));
+        assert!(script.contains("launchctl kickstart -k"));
+        assert!(script.contains("com.infrastructuredashboard.setup-daemon"));
     }
 }

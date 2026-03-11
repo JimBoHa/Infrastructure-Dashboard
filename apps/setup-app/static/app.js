@@ -308,7 +308,7 @@ const ensureReadyForInstall = async () => {
 };
 
 const waitForHandoff = async () => {
-  const deadline = Date.now() + 20000;
+  const deadline = Date.now() + 30000;
   let sawDown = false;
   while (Date.now() < deadline) {
     try {

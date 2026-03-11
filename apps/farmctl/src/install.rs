@@ -21,7 +21,9 @@ use crate::config::{
 };
 use crate::constants::{BUNDLE_ROOT_DIR, LEGACY_BUNDLE_ROOT_DIR, MANIFEST_NAME, MANIFEST_VERSION};
 use crate::health::run_health_checks;
-use crate::launchd::{apply_launchd, generate_plan, launchd_results_ok};
+use crate::launchd::{
+    apply_launchd, generate_plan, launchd_results_ok, schedule_deferred_setup_daemon_bootstrap,
+};
 use crate::migrations::apply_migrations;
 use crate::native::{ensure_database_ready, ensure_postgres_initialized, prepare_native_services};
 use crate::paths::state_path;
@@ -479,6 +481,7 @@ pub fn install_bundle(
         InstallMode::Install => println!("Installed {}", manifest.bundle_version),
         InstallMode::Upgrade => println!("Upgraded to {}", manifest.bundle_version),
     }
+    schedule_deferred_setup_daemon_bootstrap(&config)?;
     Ok(())
 }
 
@@ -561,6 +564,7 @@ pub fn rollback(args: RollbackArgs, profile_override: Option<InstallProfile>) ->
     state.previous_version = state.current_version.clone();
     state.current_version = Some(target_version.clone());
     save_state(&config, &state)?;
+    schedule_deferred_setup_daemon_bootstrap(&config)?;
     println!("Rolled back to {}", target_version);
     Ok(())
 }
