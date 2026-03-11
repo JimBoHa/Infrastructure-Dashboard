@@ -210,3 +210,9 @@ export type ExternalDeviceSweepResponse = {
   range: string;
   candidates: ExternalDeviceSweepCandidate[];
 };
+
+export type ExternalDeviceSyncResponse = {
+  status: string;
+  model_id: string;
+  points: number;
+};

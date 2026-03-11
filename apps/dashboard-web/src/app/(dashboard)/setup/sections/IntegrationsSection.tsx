@@ -415,8 +415,12 @@ export default function IntegrationsSection({
         return;
       }
     }
+    const usingSetraBacnet =
+      externalDraft.vendorId === "setra" && externalDraft.protocol === "bacnet_ip";
+    const usingSetraModbus =
+      externalDraft.vendorId === "setra" && externalDraft.protocol === "modbus_tcp";
     try {
-      await createExternalDevice({
+      const created = await createExternalDevice({
         name: externalDraft.name.trim(),
         vendor_id: externalDraft.vendorId,
         model_id: externalDraft.modelId,
@@ -442,6 +446,7 @@ export default function IntegrationsSection({
           ? Number(externalDraft.bacnetForeignTtlSeconds)
           : null,
       });
+      const sync = await syncExternalDevice(created.node_id);
       setExternalDraft((prev) => ({
         ...prev,
         name: "",
@@ -460,8 +465,19 @@ export default function IntegrationsSection({
         bacnetBbmdPort: "",
         bacnetForeignTtlSeconds: "300",
       }));
-      void queryClient.invalidateQueries({ queryKey: queryKeys.externalDevices });
-      onMessage({ type: "success", text: "External device added." });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.externalDevices }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.nodes }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.sensors }),
+      ]);
+      const pointText =
+        sync.points === 1 ? "1 mapped point" : `${sync.points} mapped points`;
+      const suffix = usingSetraBacnet
+        ? ` BACnet discovery completed and exposed ${pointText}.`
+        : usingSetraModbus
+          ? ` Initial sync completed with ${pointText}. For fuller Setra coverage, switch this model to BACnet/IP.`
+          : ` Initial sync completed with ${pointText}.`;
+      onMessage({ type: "success", text: `External device added.${suffix}` });
     } catch (err) {
       const text = err instanceof Error ? err.message : "Failed to add external device.";
       onMessage({ type: "error", text });
@@ -471,9 +487,19 @@ export default function IntegrationsSection({
   const syncExternalDeviceEntry = async (nodeId: string) => {
     if (!requireCanEdit()) return;
     try {
-      await syncExternalDevice(nodeId);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.externalDevices });
-      onMessage({ type: "success", text: "External device sync triggered." });
+      const result = await syncExternalDevice(nodeId);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.externalDevices }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.nodes }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.sensors }),
+      ]);
+      onMessage({
+        type: "success",
+        text:
+          result.points === 1
+            ? "External device sync completed with 1 mapped point."
+            : `External device sync completed with ${result.points} mapped points.`,
+      });
     } catch (err) {
       const text = err instanceof Error ? err.message : "Failed to sync external device.";
       onMessage({ type: "error", text });
@@ -1139,8 +1165,9 @@ export default function IntegrationsSection({
             <div>
               <p className="text-sm font-semibold text-card-foreground">External devices (TCP/IP)</p>
               <p className="text-xs text-muted-foreground">
-                Add supported third-party devices by host/IP, credentials, and protocol, then sync
-                them so Infrastructure Dashboard can create sensors from the catalog.
+                Add supported third-party devices by host/IP, credentials, and protocol. Setup
+                Center now runs an immediate sync after add so Infrastructure Dashboard can
+                discover points and create sensors right away.
               </p>
             </div>
             <NodeButton size="xs" onClick={createExternalDeviceEntry} disabled={!canEdit}>
@@ -1474,12 +1501,13 @@ export default function IntegrationsSection({
             <p className="mt-3 text-xs text-muted-foreground">
               Enter the device host/IP and matching protocol, then click{" "}
               <span className="font-medium text-card-foreground">Add device</span>. After the
-              device appears below, click{" "}
-              <span className="font-medium text-card-foreground">Sync now</span> to poll it and
-              create mapped sensors. BACnet/IP discovery can map readable points automatically;
-              Modbus TCP relies on the catalog profile for the selected model. For routed BACnet
-              networks, provide the device instance or BBMD details so the controller does not
-              depend on local-subnet broadcast discovery.
+              device appears below, you can still click{" "}
+              <span className="font-medium text-card-foreground">Sync now</span> to re-run
+              discovery and polling. BACnet/IP discovery can map readable points automatically and
+              is recommended for Setra Power Squad meters. Modbus TCP relies on the catalog
+              profile for the selected model. For routed BACnet networks, provide the device
+              instance or BBMD details so the controller does not depend on local-subnet broadcast
+              discovery.
             </p>
           </Card>
           <div className="mt-4 grid gap-3">

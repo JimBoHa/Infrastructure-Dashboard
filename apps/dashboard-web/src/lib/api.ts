@@ -69,6 +69,7 @@ import type {
   ApplyRenogyBt2PresetResponse,
   ExternalDeviceCatalog,
   ExternalDeviceCreateRequest,
+  ExternalDeviceSyncResponse,
   ExternalDeviceSweepResponse,
   ExternalDeviceSummary,
 } from "@/types/integrations";
@@ -161,6 +162,7 @@ import {
   IncidentNoteSchema,
   IncidentNotesListResponseSchema,
   ExternalDeviceCatalogSchema,
+  ExternalDeviceSyncResponseSchema,
   ExternalDeviceSweepResponseSchema,
   ExternalDeviceSummariesSchema,
   ExternalDeviceSummarySchema,
@@ -1698,8 +1700,10 @@ export async function createExternalDevice(
   return parseApiResponse(ExternalDeviceSummarySchema, raw, "/api/integrations/devices");
 }
 
-export async function syncExternalDevice(nodeId: string): Promise<void> {
-  await postJson(`/api/integrations/devices/${encodeURIComponent(nodeId)}/sync`, {});
+export async function syncExternalDevice(nodeId: string): Promise<ExternalDeviceSyncResponse> {
+  const path = `/api/integrations/devices/${encodeURIComponent(nodeId)}/sync`;
+  const raw = await postJson<unknown>(path, {});
+  return parseApiResponse(ExternalDeviceSyncResponseSchema, raw, path);
 }
 
 export async function deleteExternalDevice(nodeId: string): Promise<void> {

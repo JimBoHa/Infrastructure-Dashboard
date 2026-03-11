@@ -171,6 +171,14 @@ export const ExternalDeviceSweepResponseSchema = z
   })
   .passthrough();
 
+export const ExternalDeviceSyncResponseSchema = z
+  .object({
+    status: z.string(),
+    model_id: z.string(),
+    points: z.number().int().nonnegative(),
+  })
+  .passthrough();
+
 export const UpdateNodeDisplayProfileResponseSchema = z
   .object({
     status: z.string(),

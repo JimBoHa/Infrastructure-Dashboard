@@ -31,7 +31,7 @@ export const fallbackExternalDeviceCatalog: ExternalDeviceCatalog = {
           id: "setra_power_meter_generic",
           name: "Setra Power Meter / Power Squad",
           since_year: null,
-          protocols: ["modbus_tcp", "bacnet_ip"],
+          protocols: ["bacnet_ip", "modbus_tcp"],
           points: [],
         },
       ],
