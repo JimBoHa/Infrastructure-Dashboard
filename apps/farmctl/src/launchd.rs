@@ -564,6 +564,13 @@ pub fn run_preflight(config: &SetupConfig) -> Result<Vec<PreflightCheck>> {
     .iter()
     .any(|path| path.exists());
 
+    let upgrade_managed_path = |path: &Path| {
+        existing_install
+            && config.profile == InstallProfile::Prod
+            && path.exists()
+            && !writable_dir(path)
+    };
+
     let host = config.mqtt_host.trim().to_lowercase();
     let loopback = host.is_empty() || host == "127.0.0.1" || host == "localhost";
     let (status, message) = match config.profile {
@@ -626,14 +633,23 @@ pub fn run_preflight(config: &SetupConfig) -> Result<Vec<PreflightCheck>> {
         id: "state-dir".to_string(),
         status: if writable_dir(&setup_state_dir()) {
             "ok"
+        } else if upgrade_managed_path(&setup_state_dir()) {
+            "info"
         } else {
             "error"
         }
         .to_string(),
-        message: format!(
-            "State directory is writable: {}",
-            setup_state_dir().display()
-        ),
+        message: if upgrade_managed_path(&setup_state_dir()) {
+            format!(
+                "State directory is managed by the existing install: {}",
+                setup_state_dir().display()
+            )
+        } else {
+            format!(
+                "State directory is writable: {}",
+                setup_state_dir().display()
+            )
+        },
     });
 
     checks.push(PreflightCheck {
@@ -653,31 +669,60 @@ pub fn run_preflight(config: &SetupConfig) -> Result<Vec<PreflightCheck>> {
         id: "data-root".to_string(),
         status: if writable_dir(&PathBuf::from(&config.data_root)) {
             "ok"
+        } else if upgrade_managed_path(&PathBuf::from(&config.data_root)) {
+            "info"
         } else {
             "error"
         }
         .to_string(),
-        message: format!("Data root is writable: {}", config.data_root),
+        message: if upgrade_managed_path(&PathBuf::from(&config.data_root)) {
+            format!(
+                "Data root is managed by the existing install: {}",
+                config.data_root
+            )
+        } else {
+            format!("Data root is writable: {}", config.data_root)
+        },
     });
 
     checks.push(PreflightCheck {
         id: "backup-root".to_string(),
         status: if writable_dir(&PathBuf::from(&config.backup_root)) {
             "ok"
+        } else if upgrade_managed_path(&PathBuf::from(&config.backup_root)) {
+            "info"
         } else {
             "error"
         }
         .to_string(),
-        message: format!("Backup path is writable: {}", config.backup_root),
+        message: if upgrade_managed_path(&PathBuf::from(&config.backup_root)) {
+            format!(
+                "Backup path is managed by the existing install: {}",
+                config.backup_root
+            )
+        } else {
+            format!("Backup path is writable: {}", config.backup_root)
+        },
     });
 
-    if let Some(bundle_path) = config.bundle_path.as_ref() {
-        let exists = Path::new(bundle_path).exists();
-        checks.push(PreflightCheck {
+    match config.bundle_path.as_ref() {
+        Some(bundle_path) => {
+            let exists = Path::new(bundle_path).exists();
+            checks.push(PreflightCheck {
+                id: "bundle-path".to_string(),
+                status: if exists { "ok" } else { "error" }.to_string(),
+                message: if exists {
+                    format!("Bundle DMG found at {}", bundle_path)
+                } else {
+                    format!("Bundle DMG is missing at {}. Re-open the Infrastructure Dashboard Installer app so it can refresh the embedded controller package.", bundle_path)
+                },
+            });
+        }
+        None => checks.push(PreflightCheck {
             id: "bundle-path".to_string(),
-            status: if exists { "ok" } else { "error" }.to_string(),
-            message: format!("Bundle DMG found at {}", bundle_path),
-        });
+            status: "error".to_string(),
+            message: "No controller bundle is selected. Re-open the Infrastructure Dashboard Installer app or choose a local controller DMG before installing.".to_string(),
+        }),
     }
 
     checks.push(PreflightCheck {

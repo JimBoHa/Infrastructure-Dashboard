@@ -86,6 +86,7 @@ pub fn bundle(args: BundleArgs) -> Result<()> {
         .context("Failed to build node-agent overlay")?;
 
     write_bundle_configs(&root).context("Failed to write bundle configs")?;
+    validate_bundled_artifacts(&root).context("Failed to validate bundled artifacts")?;
     let manifest =
         build_manifest(&root, &args.version).context("Failed to build bundle manifest")?;
     fs::write(
@@ -209,6 +210,25 @@ mod tests {
         let path = porcelain_v1_line_path("R  old_path.txt -> reports/new_path.txt");
         assert_eq!(path, "reports/new_path.txt");
         assert!(is_tier_a_allowed_dirty_path(path));
+    }
+
+    #[test]
+    fn parse_otool_install_names_skips_header_line() {
+        let output = "\
+/tmp/core-server:
+\t@rpath/libssl.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+\t/opt/homebrew/Cellar/openssl@3/3.6.1/lib/libcrypto.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+";
+        let names = parse_otool_install_names(output);
+        assert_eq!(
+            names,
+            vec![
+                "@rpath/libssl.3.dylib".to_string(),
+                "/opt/homebrew/Cellar/openssl@3/3.6.1/lib/libcrypto.3.dylib".to_string(),
+                "/usr/lib/libSystem.B.dylib".to_string()
+            ]
+        );
     }
 }
 
@@ -449,35 +469,131 @@ fn bundle_core_server_openssl(bin_path: &Path, core_dir: &Path) -> Result<()> {
 
     let rpath = "@loader_path/../lib";
     run_install_name_tool(&["-add_rpath", rpath], bin_path)?;
-    run_install_name_tool(
-        &[
-            "-change",
-            libssl_src.to_string_lossy().as_ref(),
-            "@rpath/libssl.3.dylib",
-        ],
-        bin_path,
-    )?;
-    run_install_name_tool(
-        &[
-            "-change",
-            libcrypto_src.to_string_lossy().as_ref(),
-            "@rpath/libcrypto.3.dylib",
-        ],
-        bin_path,
-    )?;
+    rewrite_matching_install_names(bin_path, "libssl.3.dylib", "@rpath/libssl.3.dylib")?;
+    rewrite_matching_install_names(bin_path, "libcrypto.3.dylib", "@rpath/libcrypto.3.dylib")?;
 
     run_install_name_tool(&["-id", "@rpath/libssl.3.dylib"], &libssl_dest)?;
     run_install_name_tool(&["-id", "@rpath/libcrypto.3.dylib"], &libcrypto_dest)?;
-    run_install_name_tool(
-        &[
-            "-change",
-            libcrypto_src.to_string_lossy().as_ref(),
-            "@rpath/libcrypto.3.dylib",
-        ],
+    rewrite_matching_install_names(
         &libssl_dest,
+        "libcrypto.3.dylib",
+        "@rpath/libcrypto.3.dylib",
     )?;
+    codesign_bundled_binary(&libcrypto_dest, false)?;
+    codesign_bundled_binary(&libssl_dest, false)?;
+    codesign_bundled_binary(bin_path, true)?;
 
     Ok(())
+}
+
+fn validate_bundled_artifacts(root: &Path) -> Result<()> {
+    let core_server = root.join("artifacts/core-server/bin/core-server");
+    if !core_server.exists() {
+        return Ok(());
+    }
+
+    let output = Command::new(&core_server)
+        .arg("--help")
+        .output()
+        .with_context(|| {
+            format!(
+                "Failed to execute bundled core-server at {}",
+                core_server.display()
+            )
+        })?;
+    if !output.status.success() {
+        bail!(
+            "Bundled core-server failed to execute cleanly.\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    Ok(())
+}
+
+fn rewrite_matching_install_names(target: &Path, filename: &str, replacement: &str) -> Result<()> {
+    for install_name in otool_install_names(target)? {
+        if install_name == replacement {
+            continue;
+        }
+        if install_name.ends_with(filename) {
+            run_install_name_tool(&["-change", install_name.as_str(), replacement], target)?;
+        }
+    }
+    Ok(())
+}
+
+fn codesign_bundled_binary(target: &Path, hardened_runtime: bool) -> Result<()> {
+    let identity = env::var("FARM_BUNDLE_CODESIGN_IDENTITY")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let mut cmd = Command::new("codesign");
+    cmd.arg("--force");
+    if let Some(identity) = identity {
+        cmd.arg("--timestamp");
+        if hardened_runtime {
+            cmd.arg("--options").arg("runtime");
+        }
+        cmd.arg("--sign").arg(identity);
+    } else {
+        cmd.arg("--sign").arg("-");
+    }
+    let output = cmd
+        .arg(target)
+        .output()
+        .with_context(|| format!("Failed to run codesign on {}", target.display()))?;
+    if !output.status.success() {
+        bail!(
+            "codesign failed for {}\nstdout:\n{}\nstderr:\n{}",
+            target.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn otool_install_names(target: &Path) -> Result<Vec<String>> {
+    let output = Command::new("otool")
+        .arg("-L")
+        .arg(target)
+        .output()
+        .with_context(|| format!("Failed to run otool -L on {}", target.display()))?;
+    if !output.status.success() {
+        bail!(
+            "otool -L failed for {}\nstdout:\n{}\nstderr:\n{}",
+            target.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    Ok(parse_otool_install_names(&String::from_utf8_lossy(
+        &output.stdout,
+    )))
+}
+
+fn parse_otool_install_names(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .skip(1)
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                return None;
+            }
+
+            Some(
+                trimmed
+                    .split_once(" (")
+                    .map(|(name, _)| name)
+                    .unwrap_or(trimmed)
+                    .to_string(),
+            )
+        })
+        .collect()
 }
 
 fn resolve_openssl_lib_dir() -> Result<PathBuf> {

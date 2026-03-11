@@ -16,6 +16,11 @@ use crate::constants::{
 use crate::profile::InstallProfile;
 use crate::utils::{allocate_local_port, which};
 
+const DEFAULT_INSTALL_ROOT: &str = "/usr/local/infrastructure-dashboard";
+const LEGACY_INSTALL_ROOT: &str = "/usr/local/farm-dashboard";
+const DEFAULT_LAUNCHD_LABEL_PREFIX: &str = "com.infrastructuredashboard";
+const LEGACY_LAUNCHD_LABEL_PREFIX: &str = "com.farmdashboard";
+
 pub fn setup_state_dir() -> PathBuf {
     if let Ok(path) = std::env::var("FARM_SETUP_STATE_DIR") {
         return PathBuf::from(path);
@@ -31,8 +36,18 @@ pub fn resolve_config_path(path: Option<PathBuf>) -> PathBuf {
     path.unwrap_or_else(default_config_path)
 }
 
+fn preferred_install_root() -> PathBuf {
+    let primary_path = PathBuf::from(DEFAULT_INSTALL_ROOT);
+    let legacy_path = PathBuf::from(LEGACY_INSTALL_ROOT);
+    if primary_path.exists() || !legacy_path.exists() {
+        primary_path
+    } else {
+        legacy_path
+    }
+}
+
 fn default_install_root() -> String {
-    "/usr/local/farm-dashboard".to_string()
+    preferred_install_root().display().to_string()
 }
 
 fn default_data_root() -> String {
@@ -46,11 +61,17 @@ fn default_logs_root() -> String {
 }
 
 fn default_core_binary() -> String {
-    "/usr/local/farm-dashboard/bin/core-server".to_string()
+    preferred_install_root()
+        .join("bin/core-server")
+        .display()
+        .to_string()
 }
 
 fn default_sidecar_binary() -> String {
-    "/usr/local/farm-dashboard/bin/telemetry-sidecar".to_string()
+    preferred_install_root()
+        .join("bin/telemetry-sidecar")
+        .display()
+        .to_string()
 }
 
 fn default_mqtt_host() -> String {
@@ -202,7 +223,11 @@ fn default_setup_port() -> u16 {
 }
 
 fn default_launchd_label_prefix() -> String {
-    "com.farmdashboard".to_string()
+    if preferred_install_root() == PathBuf::from(LEGACY_INSTALL_ROOT) {
+        LEGACY_LAUNCHD_LABEL_PREFIX.to_string()
+    } else {
+        DEFAULT_LAUNCHD_LABEL_PREFIX.to_string()
+    }
 }
 
 fn preferred_brand_dir(primary: &str, legacy: &str) -> PathBuf {
@@ -580,14 +605,14 @@ pub fn auto_detect_config(config: &mut SetupConfig) -> Result<()> {
             config.farmctl_path = exe.display().to_string();
         }
     }
-    if config.bundle_path.is_none() {
-        if let Ok(path) = std::env::var("FARM_SETUP_BUNDLE_PATH") {
-            if !path.trim().is_empty() {
-                config.bundle_path = Some(path);
-            }
-        } else if let Some(path) = detect_bundle_path() {
-            config.bundle_path = Some(path.display().to_string());
-        }
+    if let Some(path) = detect_runtime_bundle_path() {
+        config.bundle_path = Some(path.display().to_string());
+    } else if config
+        .bundle_path
+        .as_deref()
+        .is_some_and(|path| path.trim().is_empty() || !Path::new(path).exists())
+    {
+        config.bundle_path = None;
     }
     Ok(())
 }
@@ -599,10 +624,48 @@ pub fn normalize_config(
     if let Some(profile) = profile_override {
         config.profile = profile;
     }
+    migrate_legacy_branding(config);
     auto_detect_config(config)?;
     let _ = ensure_database_url(config)?;
     apply_profile_defaults(config)?;
     Ok(())
+}
+
+fn migrate_legacy_branding(config: &mut SetupConfig) {
+    let prefer_infrastructure_paths = should_prefer_infrastructure_paths();
+    if prefer_infrastructure_paths && config.install_root == LEGACY_INSTALL_ROOT {
+        config.install_root = DEFAULT_INSTALL_ROOT.to_string();
+    }
+    if prefer_infrastructure_paths
+        && config.core_binary == format!("{LEGACY_INSTALL_ROOT}/bin/core-server")
+    {
+        config.core_binary = format!("{DEFAULT_INSTALL_ROOT}/bin/core-server");
+    }
+    if prefer_infrastructure_paths
+        && config.sidecar_binary == format!("{LEGACY_INSTALL_ROOT}/bin/telemetry-sidecar")
+    {
+        config.sidecar_binary = format!("{DEFAULT_INSTALL_ROOT}/bin/telemetry-sidecar");
+    }
+    if PathBuf::from(DEFAULT_DATA_ROOT).exists() && config.data_root == LEGACY_DATA_ROOT {
+        config.data_root = DEFAULT_DATA_ROOT.to_string();
+    }
+    if PathBuf::from(DEFAULT_DATA_ROOT).exists()
+        && config.logs_root == format!("{LEGACY_DATA_ROOT}/logs")
+    {
+        config.logs_root = format!("{DEFAULT_DATA_ROOT}/logs");
+    }
+    if PathBuf::from(DEFAULT_DATA_ROOT).exists()
+        && config.backup_root == format!("{LEGACY_DATA_ROOT}/storage/backups")
+    {
+        config.backup_root = format!("{DEFAULT_DATA_ROOT}/storage/backups");
+    }
+    if prefer_infrastructure_paths && config.launchd_label_prefix == LEGACY_LAUNCHD_LABEL_PREFIX {
+        config.launchd_label_prefix = DEFAULT_LAUNCHD_LABEL_PREFIX.to_string();
+    }
+}
+
+fn should_prefer_infrastructure_paths() -> bool {
+    PathBuf::from(DEFAULT_INSTALL_ROOT).exists() || !PathBuf::from(LEGACY_INSTALL_ROOT).exists()
 }
 
 fn apply_profile_defaults(config: &mut SetupConfig) -> Result<()> {
@@ -778,6 +841,19 @@ fn detect_bundle_path() -> Option<PathBuf> {
     find_bundle_dmg_in_dir(&dmg_root)
 }
 
+fn detect_runtime_bundle_path() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var("FARM_SETUP_BUNDLE_PATH") {
+        let trimmed = path.trim();
+        if !trimmed.is_empty() {
+            let path = PathBuf::from(trimmed);
+            if path.exists() {
+                return Some(path);
+            }
+        }
+    }
+    detect_bundle_path()
+}
+
 fn find_bundle_dmg_in_dir(dir: &Path) -> Option<PathBuf> {
     let mut fallback = None;
     for entry in fs::read_dir(dir).ok()? {
@@ -824,6 +900,26 @@ pub fn validate_bundle_path(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+    fn with_env_var<T>(key: &str, value: Option<&str>, f: impl FnOnce() -> T) -> T {
+        let lock = ENV_LOCK.get_or_init(|| Mutex::new(()));
+        let _guard = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        let previous = std::env::var(key).ok();
+        match value {
+            Some(value) => std::env::set_var(key, value),
+            None => std::env::remove_var(key),
+        }
+        let result = f();
+        match previous {
+            Some(value) => std::env::set_var(key, value),
+            None => std::env::remove_var(key),
+        }
+        result
+    }
 
     #[test]
     fn e2e_profile_assigns_non_default_ports_and_label_prefix() {
@@ -866,5 +962,51 @@ mod tests {
                 ports
             );
         }
+    }
+
+    #[test]
+    fn normalize_config_prefers_live_bundle_path_from_installer_environment() {
+        let temp = tempfile::tempdir().unwrap();
+        let bundle_path = temp
+            .path()
+            .join("InfrastructureDashboardController-0.1.3.dmg");
+        fs::write(&bundle_path, b"test").unwrap();
+
+        with_env_var(
+            "FARM_SETUP_BUNDLE_PATH",
+            Some(bundle_path.to_string_lossy().as_ref()),
+            || {
+                let mut config = default_config().unwrap();
+                config.bundle_path = Some(
+                    "/private/tmp/farm_dashboard_installer/FarmDashboardController-0.1.1.dmg"
+                        .to_string(),
+                );
+
+                normalize_config(&mut config, None).unwrap();
+
+                assert_eq!(
+                    config.bundle_path.as_deref(),
+                    Some(bundle_path.to_string_lossy().as_ref())
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn normalize_config_clears_missing_bundle_path_without_runtime_bundle() {
+        with_env_var("FARM_SETUP_BUNDLE_PATH", None, || {
+            let mut config = default_config().unwrap();
+            config.bundle_path = Some(
+                "/private/tmp/farm_dashboard_installer/FarmDashboardController-0.1.1.dmg"
+                    .to_string(),
+            );
+
+            normalize_config(&mut config, None).unwrap();
+
+            assert_eq!(
+                config.bundle_path,
+                detect_bundle_path().map(|p| p.display().to_string())
+            );
+        });
     }
 }

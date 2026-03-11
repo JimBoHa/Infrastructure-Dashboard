@@ -195,6 +195,20 @@ const renderReadySummary = (summary) => {
   ].join("");
 };
 
+const blockingInstallDetail = (checks = []) => {
+  const blocked = checks.filter((check) => check.status === "error");
+  if (!blocked.length) {
+    return "Setup Center moved you back to the readiness step so you can review the blocked items.";
+  }
+  return blocked
+    .map((check) =>
+      check.id === "bundle-path"
+        ? "The installer bundle is missing or stale. Re-open the Infrastructure Dashboard Installer app so it can refresh the embedded controller package."
+        : check.message,
+    )
+    .join(" ");
+};
+
 const renderInstallState = ({
   title,
   tone = "ok",
@@ -253,7 +267,7 @@ const ensureReadyForInstall = async () => {
       title: "Install blocked",
       tone: "warn",
       message: "Fix the readiness items before continuing.",
-      detail: "Setup Center moved you back to the readiness step so you can review them.",
+      detail: blockingInstallDetail(data?.checks || []),
     });
     return false;
   }
