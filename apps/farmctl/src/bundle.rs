@@ -87,6 +87,7 @@ pub fn bundle(args: BundleArgs) -> Result<()> {
 
     write_bundle_configs(&root).context("Failed to write bundle configs")?;
     validate_bundled_artifacts(&root).context("Failed to validate bundled artifacts")?;
+    prepare_macos_bundle_payload(&root).context("Failed to sign macOS bundle payload")?;
     let manifest =
         build_manifest(&root, &args.version).context("Failed to build bundle manifest")?;
     fs::write(
@@ -104,6 +105,7 @@ pub fn bundle(args: BundleArgs) -> Result<()> {
         &volume_root,
         &output,
     )?;
+    codesign_container(&output)?;
     println!("Bundle created at {}", output.display());
     Ok(())
 }
@@ -230,6 +232,33 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn classify_macos_signable_description_identifies_executables() {
+        let path = Path::new("artifacts/core-server/bin/core-server");
+        let description = "Mach-O 64-bit executable arm64";
+        assert_eq!(
+            classify_macos_signable_description(path, description),
+            Some(SignableKind::Executable)
+        );
+    }
+
+    #[test]
+    fn classify_macos_signable_description_identifies_shared_libraries() {
+        let path = Path::new("native/postgres/lib/postgresql/timescaledb.so");
+        let description = "Mach-O 64-bit bundle arm64";
+        assert_eq!(
+            classify_macos_signable_description(path, description),
+            Some(SignableKind::Library)
+        );
+    }
+
+    #[test]
+    fn classify_macos_signable_description_skips_non_macho_files() {
+        let path = Path::new("configs/setup-config.json");
+        let description = "JSON text data";
+        assert_eq!(classify_macos_signable_description(path, description), None);
+    }
 }
 
 pub fn installer(args: InstallerArgs) -> Result<()> {
@@ -253,6 +282,7 @@ pub fn installer(args: InstallerArgs) -> Result<()> {
     let volname = env::var("FARM_DASHBOARD_INSTALLER_VOLNAME")
         .unwrap_or_else(|_| format!("InfrastructureDashboardInstaller-{}", args.version));
     create_dmg(&volname, &root, &args.output)?;
+    codesign_container(&args.output)?;
     println!("Installer DMG created at {}", args.output.display());
     Ok(())
 }
@@ -399,6 +429,10 @@ fn build_installer_app(
         config_path = config_path.display(),
     );
     fs::write(contents_dir.join("Info.plist"), info_plist)?;
+    clear_extended_attributes(&app_path)?;
+    codesign_bundled_binary(&farmctl_dest, true)?;
+    codesign_bundled_binary(&launcher_bin, true)?;
+    codesign_app_bundle(&app_path)?;
     Ok(())
 }
 
@@ -548,6 +582,163 @@ fn codesign_bundled_binary(target: &Path, hardened_runtime: bool) -> Result<()> 
         bail!(
             "codesign failed for {}\nstdout:\n{}\nstderr:\n{}",
             target.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn codesign_app_bundle(app_path: &Path) -> Result<()> {
+    let identity = env::var("FARM_BUNDLE_CODESIGN_IDENTITY")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let mut cmd = Command::new("codesign");
+    cmd.arg("--force").arg("--deep");
+    if let Some(identity) = identity {
+        cmd.arg("--timestamp")
+            .arg("--options")
+            .arg("runtime")
+            .arg("--sign")
+            .arg(identity);
+    } else {
+        cmd.arg("--sign").arg("-");
+    }
+    let output = cmd
+        .arg(app_path)
+        .output()
+        .with_context(|| format!("Failed to run codesign on {}", app_path.display()))?;
+    if !output.status.success() {
+        bail!(
+            "codesign failed for app bundle {}\nstdout:\n{}\nstderr:\n{}",
+            app_path.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn codesign_container(target: &Path) -> Result<()> {
+    let identity = env::var("FARM_BUNDLE_CODESIGN_IDENTITY")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let Some(identity) = identity else {
+        return Ok(());
+    };
+    clear_extended_attributes(target)?;
+    let output = Command::new("codesign")
+        .arg("--force")
+        .arg("--timestamp")
+        .arg("--sign")
+        .arg(identity)
+        .arg(target)
+        .output()
+        .with_context(|| format!("Failed to run codesign on {}", target.display()))?;
+    if !output.status.success() {
+        bail!(
+            "codesign failed for {}\nstdout:\n{}\nstderr:\n{}",
+            target.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn prepare_macos_bundle_payload(root: &Path) -> Result<()> {
+    if env::consts::OS != "macos" {
+        return Ok(());
+    }
+    clear_extended_attributes(root)?;
+
+    let mut libraries = Vec::new();
+    let mut executables = Vec::new();
+    for entry in WalkDir::new(root).follow_links(false) {
+        let entry = entry.with_context(|| format!("Failed while walking {}", root.display()))?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        match classify_macos_signable_file(entry.path())? {
+            Some(SignableKind::Library) => libraries.push(entry.into_path()),
+            Some(SignableKind::Executable) => executables.push(entry.into_path()),
+            None => {}
+        }
+    }
+
+    libraries.sort();
+    executables.sort();
+
+    for path in libraries {
+        codesign_bundled_binary(&path, false)?;
+    }
+    for path in executables {
+        codesign_bundled_binary(&path, true)?;
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SignableKind {
+    Library,
+    Executable,
+}
+
+fn classify_macos_signable_file(path: &Path) -> Result<Option<SignableKind>> {
+    let output = Command::new("file")
+        .arg("-b")
+        .arg(path)
+        .output()
+        .with_context(|| format!("Failed to run file on {}", path.display()))?;
+    if !output.status.success() {
+        bail!(
+            "file failed for {}\nstdout:\n{}\nstderr:\n{}",
+            path.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(classify_macos_signable_description(
+        path,
+        &String::from_utf8_lossy(&output.stdout),
+    ))
+}
+
+fn classify_macos_signable_description(path: &Path, description: &str) -> Option<SignableKind> {
+    let description = description.trim();
+    if !description.contains("Mach-O") {
+        return None;
+    }
+
+    let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
+    if matches!(extension, "dylib" | "so")
+        || description.contains("dynamically linked shared library")
+        || description.contains("bundle")
+    {
+        Some(SignableKind::Library)
+    } else {
+        Some(SignableKind::Executable)
+    }
+}
+
+fn clear_extended_attributes(path: &Path) -> Result<()> {
+    if env::consts::OS != "macos" {
+        return Ok(());
+    }
+    let Some(xattr) = which("xattr") else {
+        return Ok(());
+    };
+    let output = Command::new(xattr)
+        .arg("-cr")
+        .arg(path)
+        .output()
+        .with_context(|| format!("Failed to run xattr -cr on {}", path.display()))?;
+    if !output.status.success() {
+        bail!(
+            "xattr -cr failed for {}\nstdout:\n{}\nstderr:\n{}",
+            path.display(),
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
