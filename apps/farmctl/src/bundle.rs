@@ -576,6 +576,10 @@ fn codesign_bundled_binary(target: &Path, hardened_runtime: bool) -> Result<()> 
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
+    let keychain = env::var("FARM_BUNDLE_CODESIGN_KEYCHAIN")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
     let mut cmd = Command::new("codesign");
     cmd.arg("--force");
     if let Some(identity) = identity {
@@ -586,6 +590,9 @@ fn codesign_bundled_binary(target: &Path, hardened_runtime: bool) -> Result<()> 
         cmd.arg("--sign").arg(identity);
     } else {
         cmd.arg("--sign").arg("-");
+    }
+    if let Some(keychain) = keychain {
+        cmd.arg("--keychain").arg(keychain);
     }
     let output = cmd
         .arg(target)
@@ -607,6 +614,10 @@ fn codesign_app_bundle(app_path: &Path) -> Result<()> {
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
+    let keychain = env::var("FARM_BUNDLE_CODESIGN_KEYCHAIN")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
     let mut cmd = Command::new("codesign");
     cmd.arg("--force").arg("--deep");
     if let Some(identity) = identity {
@@ -617,6 +628,9 @@ fn codesign_app_bundle(app_path: &Path) -> Result<()> {
             .arg(identity);
     } else {
         cmd.arg("--sign").arg("-");
+    }
+    if let Some(keychain) = keychain {
+        cmd.arg("--keychain").arg(keychain);
     }
     let output = cmd
         .arg(app_path)
@@ -638,15 +652,23 @@ fn codesign_container(target: &Path) -> Result<()> {
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
+    let keychain = env::var("FARM_BUNDLE_CODESIGN_KEYCHAIN")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
     let Some(identity) = identity else {
         return Ok(());
     };
     clear_extended_attributes(target)?;
-    let output = Command::new("codesign")
-        .arg("--force")
+    let mut cmd = Command::new("codesign");
+    cmd.arg("--force")
         .arg("--timestamp")
         .arg("--sign")
-        .arg(identity)
+        .arg(identity);
+    if let Some(keychain) = keychain {
+        cmd.arg("--keychain").arg(keychain);
+    }
+    let output = cmd
         .arg(target)
         .output()
         .with_context(|| format!("Failed to run codesign on {}", target.display()))?;
