@@ -24,6 +24,7 @@ import {
   deleteSetupCredential,
   loginEmporia,
   postJson,
+  sweepExternalDevices,
   syncExternalDevice,
   upsertSetupCredential,
   updateEmporiaDevices,
@@ -36,6 +37,7 @@ import {
   useExternalDevicesQuery,
 } from "@/lib/queries";
 import type { EmporiaDeviceUpdate, SetupCredential } from "@/types/setup";
+import type { ExternalDeviceSweepCandidate } from "@/types/integrations";
 
 import type { Message } from "../types";
 
@@ -47,6 +49,7 @@ type CredentialDefinition = {
 
 const SUPPORTED_EXTERNAL_PROTOCOLS = new Set([
   "modbus_tcp",
+  "bacnet_ip",
   "snmp",
   "http_json",
   "lutron_lip",
@@ -129,7 +132,15 @@ export default function IntegrationsSection({
     leapClientKey: "",
     leapCaCert: "",
     leapVerifyCa: true,
+    bacnetDeviceInstance: "",
+    bacnetBbmdHost: "",
+    bacnetBbmdPort: "",
+    bacnetForeignTtlSeconds: "300",
   });
+  const [sweepBusy, setSweepBusy] = useState(false);
+  const [sweepRange, setSweepRange] = useState("");
+  const [sweepRangeLabel, setSweepRangeLabel] = useState("local subnet");
+  const [sweepCandidates, setSweepCandidates] = useState<ExternalDeviceSweepCandidate[]>([]);
   const [showLeapHelp, setShowLeapHelp] = useState(false);
   const [leapHelpAcknowledged, setLeapHelpAcknowledged] = useState(false);
 
@@ -308,6 +319,56 @@ export default function IntegrationsSection({
     }
   };
 
+  const applySweepCandidate = (candidate: ExternalDeviceSweepCandidate) => {
+    const suggestedVendor = candidate.vendor_id ?? "";
+    const vendor = externalVendors.find((entry) => entry.id === suggestedVendor) ?? null;
+    const suggestedModel =
+      vendor?.models.find((entry) => entry.id === candidate.model_id) ?? vendor?.models[0] ?? null;
+    const protocol =
+      candidate.protocols.includes("bacnet_ip")
+        ? "bacnet_ip"
+        : candidate.protocols[0] ?? suggestedModel?.protocols?.[0] ?? "";
+    setExternalDraft((prev) => ({
+      ...prev,
+      name: candidate.display_name?.trim() || prev.name || candidate.host,
+      host: candidate.host,
+      vendorId: vendor?.id ?? prev.vendorId,
+      modelId: suggestedModel?.id ?? prev.modelId,
+      protocol: suggestedModel?.protocols.includes(protocol) ? protocol : suggestedModel?.protocols?.[0] ?? protocol,
+      port:
+        protocol === "bacnet_ip"
+          ? "47808"
+          : protocol === "modbus_tcp"
+            ? "502"
+            : prev.port,
+    }));
+    onMessage({
+      type: "success",
+      text: `Loaded ${candidate.host} into the device form. Review the profile, then click Add device.`,
+    });
+  };
+
+  const runExternalSweep = async (range: string | null) => {
+    if (!requireCanEdit()) return;
+    setSweepBusy(true);
+    try {
+      const result = await sweepExternalDevices(range);
+      setSweepRangeLabel(result.range);
+      setSweepCandidates(result.candidates ?? []);
+      onMessage({
+        type: "success",
+        text: result.candidates.length
+          ? `Found ${result.candidates.length} external-device candidate(s) on ${result.range}.`
+          : `No supported external-device candidates responded on ${result.range}.`,
+      });
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "External device sweep failed.";
+      onMessage({ type: "error", text });
+    } finally {
+      setSweepBusy(false);
+    }
+  };
+
   const createExternalDeviceEntry = async () => {
     if (!requireCanEdit()) return;
     if (!externalDraft.name.trim()) {
@@ -372,6 +433,14 @@ export default function IntegrationsSection({
         leap_client_key_pem: externalDraft.leapClientKey?.trim() || null,
         leap_ca_pem: externalDraft.leapCaCert?.trim() || null,
         leap_verify_ca: externalDraft.leapVerifyCa,
+        bacnet_device_instance: externalDraft.bacnetDeviceInstance
+          ? Number(externalDraft.bacnetDeviceInstance)
+          : null,
+        bacnet_bbmd_host: externalDraft.bacnetBbmdHost?.trim() || null,
+        bacnet_bbmd_port: externalDraft.bacnetBbmdPort ? Number(externalDraft.bacnetBbmdPort) : null,
+        bacnet_foreign_ttl_seconds: externalDraft.bacnetForeignTtlSeconds
+          ? Number(externalDraft.bacnetForeignTtlSeconds)
+          : null,
       });
       setExternalDraft((prev) => ({
         ...prev,
@@ -386,6 +455,10 @@ export default function IntegrationsSection({
         leapClientKey: "",
         leapCaCert: "",
         leapVerifyCa: true,
+        bacnetDeviceInstance: "",
+        bacnetBbmdHost: "",
+        bacnetBbmdPort: "",
+        bacnetForeignTtlSeconds: "300",
       }));
       void queryClient.invalidateQueries({ queryKey: queryKeys.externalDevices });
       onMessage({ type: "success", text: "External device added." });
@@ -1047,15 +1120,14 @@ export default function IntegrationsSection({
                 <p className="mt-2 text-xs text-muted-foreground">
                   Known match: Setra Power Squad meters should use{" "}
                   <span className="font-medium text-card-foreground">
-                    Setra → Setra Power Meter / Power Squad (Modbus)
+                    Setra → Setra Power Meter / Power Squad
                   </span>
                   . Lutron controllers use the Lutron LIP or LEAP profiles, and Megatron water
                   treatment controllers use the Megatron Modbus profile.
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  BACnet/IP profiles are hidden here until the backend BACnet poller exists. The
-                  current release only supports Modbus TCP, SNMP, HTTP JSON, Lutron LIP, and
-                  Lutron LEAP for external devices.
+                  BACnet/IP is now available for external devices, including Setra power meters.
+                  Use the sweep below to scan the local subnet or enter a custom range.
                 </p>
               </>
             )}
@@ -1075,6 +1147,85 @@ export default function IntegrationsSection({
               Add device
             </NodeButton>
           </div>
+          <Card className="mt-3 rounded-lg gap-0 bg-card-inset p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-card-foreground">Network sweep</p>
+                <p className="text-xs text-muted-foreground">
+                  Scan the current local subnet by default, or enter a custom range like{" "}
+                  <span className="font-medium text-card-foreground">192.168.75.0/24</span> or{" "}
+                  <span className="font-medium text-card-foreground">
+                    192.168.75.40-192.168.75.120
+                  </span>
+                  .
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <NodeButton
+                  size="xs"
+                  onClick={() => void runExternalSweep(null)}
+                  disabled={!canEdit || sweepBusy}
+                >
+                  {sweepBusy ? "Scanning..." : "Scan local subnet"}
+                </NodeButton>
+                <NodeButton
+                  size="xs"
+                  variant="primary"
+                  onClick={() => void runExternalSweep(sweepRange)}
+                  disabled={!canEdit || sweepBusy || !sweepRange.trim()}
+                >
+                  Scan custom range
+                </NodeButton>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+              <Input
+                placeholder="Custom range (CIDR, single IP, or start-end)"
+                value={sweepRange}
+                disabled={!canEdit || sweepBusy}
+                onChange={(event) => setSweepRange(event.target.value)}
+              />
+              <div className="self-center text-xs text-muted-foreground">
+                Last scan: {sweepRangeLabel}
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3">
+              {!sweepCandidates.length ? (
+                <p className="text-xs text-muted-foreground">
+                  No sweep results loaded yet. BACnet/IP devices such as the Setra Power Squad
+                  meters should appear here when they respond.
+                </p>
+              ) : (
+                sweepCandidates.map((candidate) => (
+                  <Card key={`${candidate.host}-${candidate.protocols.join(",")}`} className="rounded-lg bg-background p-3">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-card-foreground">
+                          {candidate.display_name?.trim() || candidate.host}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {candidate.host} · {candidate.protocols.join(", ")}
+                        </p>
+                        {candidate.notes.length ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {candidate.notes.join(" ")}
+                          </p>
+                        ) : null}
+                      </div>
+                      <NodeButton
+                        size="xs"
+                        variant="primary"
+                        onClick={() => applySweepCandidate(candidate)}
+                        disabled={!canEdit}
+                      >
+                        Use candidate
+                      </NodeButton>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </Card>
           <Card className="mt-3 rounded-lg gap-0 bg-card-inset p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <Input
@@ -1183,6 +1334,57 @@ export default function IntegrationsSection({
                   }
                 />
               ) : null}
+              {externalDraft.protocol === "bacnet_ip" ? (
+                <Fragment>
+                  <Input
+                    type="number"
+                    placeholder="BACnet device instance (optional)"
+                    value={externalDraft.bacnetDeviceInstance}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({
+                        ...prev,
+                        bacnetDeviceInstance: event.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    placeholder="BBMD host/IP (optional for routed BACnet)"
+                    value={externalDraft.bacnetBbmdHost}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({
+                        ...prev,
+                        bacnetBbmdHost: event.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    type="number"
+                    placeholder="BBMD port"
+                    value={externalDraft.bacnetBbmdPort}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({
+                        ...prev,
+                        bacnetBbmdPort: event.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Foreign-device TTL seconds"
+                    value={externalDraft.bacnetForeignTtlSeconds}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({
+                        ...prev,
+                        bacnetForeignTtlSeconds: event.target.value,
+                      }))
+                    }
+                  />
+                </Fragment>
+              ) : null}
               {externalDraft.protocol === "http_json" ? (
                 <Input
                   placeholder="HTTP base URL"
@@ -1274,8 +1476,10 @@ export default function IntegrationsSection({
               <span className="font-medium text-card-foreground">Add device</span>. After the
               device appears below, click{" "}
               <span className="font-medium text-card-foreground">Sync now</span> to poll it and
-              create mapped sensors. There is no automatic network sweep for these third-party
-              devices yet.
+              create mapped sensors. BACnet/IP discovery can map readable points automatically;
+              Modbus TCP relies on the catalog profile for the selected model. For routed BACnet
+              networks, provide the device instance or BBMD details so the controller does not
+              depend on local-subnet broadcast discovery.
             </p>
           </Card>
           <div className="mt-4 grid gap-3">

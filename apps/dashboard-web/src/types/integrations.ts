@@ -190,5 +190,23 @@ export type ExternalDeviceCreateRequest = {
   leap_client_key_pem?: string | null;
   leap_ca_pem?: string | null;
   leap_verify_ca?: boolean | null;
+  bacnet_device_instance?: number | null;
+  bacnet_bbmd_host?: string | null;
+  bacnet_bbmd_port?: number | null;
+  bacnet_foreign_ttl_seconds?: number | null;
   external_id?: string | null;
+};
+
+export type ExternalDeviceSweepCandidate = {
+  host: string;
+  display_name?: string | null;
+  protocols: string[];
+  vendor_id?: string | null;
+  model_id?: string | null;
+  notes: string[];
+};
+
+export type ExternalDeviceSweepResponse = {
+  range: string;
+  candidates: ExternalDeviceSweepCandidate[];
 };

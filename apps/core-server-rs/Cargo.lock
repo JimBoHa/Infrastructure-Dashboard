@@ -803,6 +803,85 @@ dependencies = [
 ]
 
 [[package]]
+name = "bacnet-client"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c15762fb4e018329372ee802104c09d8d1b1d750b4aab15ddea61faab7d89f0"
+dependencies = [
+ "bacnet-encoding",
+ "bacnet-network",
+ "bacnet-services",
+ "bacnet-transport",
+ "bacnet-types",
+ "bytes",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "bacnet-encoding"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2a626f59698682dfe67586941733348dea8d7184b10da81accc606c0e21fa7d"
+dependencies = [
+ "bacnet-types",
+ "bytes",
+ "tracing",
+]
+
+[[package]]
+name = "bacnet-network"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47eced11f5a2198596c0421feb7a1fdb47b4aab9fcc8c5f468ee42f24423208d"
+dependencies = [
+ "bacnet-encoding",
+ "bacnet-transport",
+ "bacnet-types",
+ "bytes",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "bacnet-services"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb4009ea605725ad8f41b1d3473d26e0d07f56a4fb53cb2128af8a8ed339c907"
+dependencies = [
+ "bacnet-encoding",
+ "bacnet-types",
+ "bytes",
+ "tracing",
+]
+
+[[package]]
+name = "bacnet-transport"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bff0a84ee7b150ccbf68006292950addddad859ea1daec57483fcb767b1065b2"
+dependencies = [
+ "bacnet-encoding",
+ "bacnet-types",
+ "bytes",
+ "libc",
+ "socket2 0.6.1",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "bacnet-types"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d07c66353e35bd62af35eca0be320936e27887ebe817073d108ded044909a9f"
+dependencies = [
+ "bitflags 2.10.0",
+ "smallvec",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1120,6 +1199,10 @@ dependencies = [
  "aws-sdk-cognitoidentityprovider",
  "aws-types",
  "axum",
+ "bacnet-client",
+ "bacnet-encoding",
+ "bacnet-transport",
+ "bacnet-types",
  "base64",
  "chrono",
  "chrono-tz",
@@ -1129,6 +1212,7 @@ dependencies = [
  "evalexpr",
  "futures",
  "iana-time-zone",
+ "if-addrs 0.13.4",
  "libc",
  "mdns-sd",
  "pbkdf2",
@@ -2191,6 +2275,16 @@ dependencies = [
 
 [[package]]
 name = "if-addrs"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69b2eeee38fef3aa9b4cc5f1beea8a2444fc00e7377cafae396de3f5c2065e24"
+dependencies = [
+ "libc",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "if-addrs"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf39cc0423ee66021dc5eccface85580e4a001e0c5288bae8bea7ecb69225e90"
@@ -2526,7 +2620,7 @@ checksum = "f43e377ae111ceb4630fc8239cf7af8c894193f02bb23976177a475007977417"
 dependencies = [
  "fastrand",
  "flume",
- "if-addrs",
+ "if-addrs 0.14.0",
  "log",
  "mio",
  "socket-pktinfo",

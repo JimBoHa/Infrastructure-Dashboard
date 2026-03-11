@@ -69,6 +69,7 @@ import type {
   ApplyRenogyBt2PresetResponse,
   ExternalDeviceCatalog,
   ExternalDeviceCreateRequest,
+  ExternalDeviceSweepResponse,
   ExternalDeviceSummary,
 } from "@/types/integrations";
 import { fallbackExternalDeviceCatalog } from "@/lib/fallbackExternalDeviceCatalog";
@@ -160,6 +161,7 @@ import {
   IncidentNoteSchema,
   IncidentNotesListResponseSchema,
   ExternalDeviceCatalogSchema,
+  ExternalDeviceSweepResponseSchema,
   ExternalDeviceSummariesSchema,
   ExternalDeviceSummarySchema,
   parseApiResponse,
@@ -1676,6 +1678,17 @@ export async function fetchExternalDeviceCatalog(): Promise<ExternalDeviceCatalo
 
 export async function fetchExternalDevices(): Promise<ExternalDeviceSummary[]> {
   return fetchJsonValidated("/api/integrations/devices", ExternalDeviceSummariesSchema);
+}
+
+export async function sweepExternalDevices(range?: string | null): Promise<ExternalDeviceSweepResponse> {
+  const raw = await postJson<unknown>("/api/integrations/devices/sweep", {
+    range: range?.trim() ? range.trim() : null,
+  });
+  return parseApiResponse(
+    ExternalDeviceSweepResponseSchema,
+    raw,
+    "/api/integrations/devices/sweep",
+  );
 }
 
 export async function createExternalDevice(

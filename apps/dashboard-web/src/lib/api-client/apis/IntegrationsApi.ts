@@ -18,6 +18,8 @@ import type {
   ExternalDeviceCatalogResponse,
   ExternalDeviceCreateRequest,
   ExternalDeviceSummary,
+  ExternalDeviceSweepRequest,
+  ExternalDeviceSweepResponse,
 } from '../models/index';
 import {
     ExternalDeviceCatalogResponseFromJSON,
@@ -26,6 +28,10 @@ import {
     ExternalDeviceCreateRequestToJSON,
     ExternalDeviceSummaryFromJSON,
     ExternalDeviceSummaryToJSON,
+    ExternalDeviceSweepRequestFromJSON,
+    ExternalDeviceSweepRequestToJSON,
+    ExternalDeviceSweepResponseFromJSON,
+    ExternalDeviceSweepResponseToJSON,
 } from '../models/index';
 
 export interface CreateDeviceRequest {
@@ -34,6 +40,10 @@ export interface CreateDeviceRequest {
 
 export interface DeleteDeviceRequest {
     nodeId: string;
+}
+
+export interface SweepDevicesRequest {
+    externalDeviceSweepRequest: ExternalDeviceSweepRequest;
 }
 
 export interface SyncDeviceRequest {
@@ -231,6 +241,59 @@ export class IntegrationsApi extends runtime.BaseAPI {
      */
     async listDevices(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ExternalDeviceSummary>> {
         const response = await this.listDevicesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for sweepDevices without sending the request
+     */
+    async sweepDevicesRequestOpts(requestParameters: SweepDevicesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['externalDeviceSweepRequest'] == null) {
+            throw new runtime.RequiredError(
+                'externalDeviceSweepRequest',
+                'Required parameter "externalDeviceSweepRequest" was null or undefined when calling sweepDevices().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("HTTPBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/integrations/devices/sweep`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ExternalDeviceSweepRequestToJSON(requestParameters['externalDeviceSweepRequest']),
+        };
+    }
+
+    /**
+     */
+    async sweepDevicesRaw(requestParameters: SweepDevicesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ExternalDeviceSweepResponse>> {
+        const requestOptions = await this.sweepDevicesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ExternalDeviceSweepResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async sweepDevices(requestParameters: SweepDevicesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ExternalDeviceSweepResponse> {
+        const response = await this.sweepDevicesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

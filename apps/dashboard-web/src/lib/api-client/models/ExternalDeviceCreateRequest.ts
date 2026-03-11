@@ -24,6 +24,30 @@ export interface ExternalDeviceCreateRequest {
      * @type {string}
      * @memberof ExternalDeviceCreateRequest
      */
+    bacnet_bbmd_host?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ExternalDeviceCreateRequest
+     */
+    bacnet_bbmd_port?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ExternalDeviceCreateRequest
+     */
+    bacnet_device_instance?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ExternalDeviceCreateRequest
+     */
+    bacnet_foreign_ttl_seconds?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ExternalDeviceCreateRequest
+     */
     external_id?: string | null;
     /**
      * 
@@ -162,6 +186,10 @@ export function ExternalDeviceCreateRequestFromJSONTyped(json: any, ignoreDiscri
     }
     return {
         
+        'bacnet_bbmd_host': json['bacnet_bbmd_host'] == null ? undefined : json['bacnet_bbmd_host'],
+        'bacnet_bbmd_port': json['bacnet_bbmd_port'] == null ? undefined : json['bacnet_bbmd_port'],
+        'bacnet_device_instance': json['bacnet_device_instance'] == null ? undefined : json['bacnet_device_instance'],
+        'bacnet_foreign_ttl_seconds': json['bacnet_foreign_ttl_seconds'] == null ? undefined : json['bacnet_foreign_ttl_seconds'],
         'external_id': json['external_id'] == null ? undefined : json['external_id'],
         'host': json['host'] == null ? undefined : json['host'],
         'http_base_url': json['http_base_url'] == null ? undefined : json['http_base_url'],
@@ -196,6 +224,10 @@ export function ExternalDeviceCreateRequestToJSONTyped(value?: ExternalDeviceCre
 
     return {
         
+        'bacnet_bbmd_host': value['bacnet_bbmd_host'],
+        'bacnet_bbmd_port': value['bacnet_bbmd_port'],
+        'bacnet_device_instance': value['bacnet_device_instance'],
+        'bacnet_foreign_ttl_seconds': value['bacnet_foreign_ttl_seconds'],
         'external_id': value['external_id'],
         'host': value['host'],
         'http_base_url': value['http_base_url'],

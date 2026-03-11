@@ -50,6 +50,11 @@ tokio-modbus = "0.9"
 snmp = "0.2.2"
 tokio-rustls = "0.26"
 rustls-pemfile = "2"
+bacnet-client = "0.6.4"
+bacnet-encoding = "0.6.4"
+bacnet-transport = "0.6.4"
+bacnet-types = "0.6.4"
+if-addrs = "0.13"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mdns-sd = "0.17"

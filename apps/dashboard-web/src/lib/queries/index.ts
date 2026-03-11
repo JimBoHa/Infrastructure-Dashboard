@@ -32,6 +32,7 @@ import {
   fetchEmporiaDevices,
   fetchExternalDeviceCatalog,
   fetchExternalDevices,
+  sweepExternalDevices,
   fetchWeatherForecastConfig,
   fetchCurrentWeather,
   fetchWeatherForecastDaily,
@@ -87,6 +88,7 @@ export const queryKeys = {
   emporiaDevices: ["setup", "emporia", "devices"] as const,
   externalDeviceCatalog: ["integrations", "devices", "catalog"] as const,
   externalDevices: ["integrations", "devices"] as const,
+  externalDeviceSweep: (range: string) => ["integrations", "devices", "sweep", range] as const,
   scheduleCalendar: (start: string, end: string) =>
     ["schedules", "calendar", start, end] as const,
   metrics: (sensorIds: string[], rangeHours: number, interval: number) =>
@@ -377,6 +379,14 @@ export const useExternalDevicesQuery = () =>
     queryFn: fetchExternalDevices,
     staleTime: STALE_SHORT,
     refetchInterval: STALE_SHORT,
+  });
+
+export const useExternalDeviceSweepQuery = (range: string | null, options: QueryToggleOptions = {}) =>
+  useQuery({
+    queryKey: queryKeys.externalDeviceSweep(range ?? "local"),
+    queryFn: () => sweepExternalDevices(range),
+    staleTime: STALE_SHORT,
+    enabled: (options.enabled ?? true) && range !== undefined,
   });
 
 export const useMapSavesQuery = () =>

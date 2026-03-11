@@ -27,6 +27,10 @@ class ExternalDeviceCreateRequest(BaseModel):
     """
     ExternalDeviceCreateRequest
     """ # noqa: E501
+    bacnet_bbmd_host: Optional[StrictStr] = None
+    bacnet_bbmd_port: Optional[Annotated[int, Field(strict=True, ge=0)]] = None
+    bacnet_device_instance: Optional[Annotated[int, Field(strict=True, ge=0)]] = None
+    bacnet_foreign_ttl_seconds: Optional[Annotated[int, Field(strict=True, ge=0)]] = None
     external_id: Optional[StrictStr] = None
     host: Optional[StrictStr] = None
     http_base_url: Optional[StrictStr] = None
@@ -47,7 +51,7 @@ class ExternalDeviceCreateRequest(BaseModel):
     snmp_community: Optional[StrictStr] = None
     unit_id: Optional[Annotated[int, Field(strict=True, ge=0)]] = None
     vendor_id: StrictStr
-    __properties: ClassVar[List[str]] = ["external_id", "host", "http_base_url", "http_password", "http_username", "leap_ca_pem", "leap_client_cert_pem", "leap_client_key_pem", "leap_verify_ca", "lip_integration_report", "lip_password", "lip_username", "model_id", "name", "poll_interval_seconds", "port", "protocol", "snmp_community", "unit_id", "vendor_id"]
+    __properties: ClassVar[List[str]] = ["bacnet_bbmd_host", "bacnet_bbmd_port", "bacnet_device_instance", "bacnet_foreign_ttl_seconds", "external_id", "host", "http_base_url", "http_password", "http_username", "leap_ca_pem", "leap_client_cert_pem", "leap_client_key_pem", "leap_verify_ca", "lip_integration_report", "lip_password", "lip_username", "model_id", "name", "poll_interval_seconds", "port", "protocol", "snmp_community", "unit_id", "vendor_id"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -88,6 +92,26 @@ class ExternalDeviceCreateRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if bacnet_bbmd_host (nullable) is None
+        # and model_fields_set contains the field
+        if self.bacnet_bbmd_host is None and "bacnet_bbmd_host" in self.model_fields_set:
+            _dict['bacnet_bbmd_host'] = None
+
+        # set to None if bacnet_bbmd_port (nullable) is None
+        # and model_fields_set contains the field
+        if self.bacnet_bbmd_port is None and "bacnet_bbmd_port" in self.model_fields_set:
+            _dict['bacnet_bbmd_port'] = None
+
+        # set to None if bacnet_device_instance (nullable) is None
+        # and model_fields_set contains the field
+        if self.bacnet_device_instance is None and "bacnet_device_instance" in self.model_fields_set:
+            _dict['bacnet_device_instance'] = None
+
+        # set to None if bacnet_foreign_ttl_seconds (nullable) is None
+        # and model_fields_set contains the field
+        if self.bacnet_foreign_ttl_seconds is None and "bacnet_foreign_ttl_seconds" in self.model_fields_set:
+            _dict['bacnet_foreign_ttl_seconds'] = None
+
         # set to None if external_id (nullable) is None
         # and model_fields_set contains the field
         if self.external_id is None and "external_id" in self.model_fields_set:
@@ -180,6 +204,10 @@ class ExternalDeviceCreateRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "bacnet_bbmd_host": obj.get("bacnet_bbmd_host"),
+            "bacnet_bbmd_port": obj.get("bacnet_bbmd_port"),
+            "bacnet_device_instance": obj.get("bacnet_device_instance"),
+            "bacnet_foreign_ttl_seconds": obj.get("bacnet_foreign_ttl_seconds"),
             "external_id": obj.get("external_id"),
             "host": obj.get("host"),
             "http_base_url": obj.get("http_base_url"),

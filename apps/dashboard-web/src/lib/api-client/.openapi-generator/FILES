@@ -140,6 +140,9 @@ models/EventPolarityV1.ts
 models/ExternalDeviceCatalogResponse.ts
 models/ExternalDeviceCreateRequest.ts
 models/ExternalDeviceSummary.ts
+models/ExternalDeviceSweepCandidate.ts
+models/ExternalDeviceSweepRequest.ts
+models/ExternalDeviceSweepResponse.ts
 models/ForecastDatumRead.ts
 models/ForecastIngestItem.ts
 models/ForecastIngestRequest.ts

@@ -11,7 +11,9 @@ use crate::auth::{require_capabilities, AuthUser};
 use crate::device_catalog;
 use crate::device_catalog::DeviceVendor;
 use crate::error::map_db_error;
-use crate::services::external_devices::ExternalDeviceConfig;
+use crate::services::external_devices::{
+    sweep_external_network, ExternalDeviceConfig, ExternalDeviceSweepCandidate,
+};
 use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
@@ -28,6 +30,17 @@ pub struct ExternalDeviceSummary {
     pub external_provider: Option<String>,
     pub external_id: Option<String>,
     pub config: JsonValue,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+pub struct ExternalDeviceSweepResponse {
+    pub range: String,
+    pub candidates: Vec<ExternalDeviceSweepCandidate>,
+}
+
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+pub struct ExternalDeviceSweepRequest {
+    pub range: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
@@ -51,6 +64,10 @@ pub struct ExternalDeviceCreateRequest {
     pub leap_client_key_pem: Option<String>,
     pub leap_ca_pem: Option<String>,
     pub leap_verify_ca: Option<bool>,
+    pub bacnet_device_instance: Option<u32>,
+    pub bacnet_bbmd_host: Option<String>,
+    pub bacnet_bbmd_port: Option<u16>,
+    pub bacnet_foreign_ttl_seconds: Option<u16>,
     pub external_id: Option<String>,
 }
 
@@ -65,7 +82,9 @@ pub struct ExternalDeviceCreateRequest {
         ("HTTPBearer" = [])
     )
 )]
-pub async fn get_device_catalog(AuthUser(user): AuthUser) -> Result<Json<ExternalDeviceCatalogResponse>, (StatusCode, String)> {
+pub async fn get_device_catalog(
+    AuthUser(user): AuthUser,
+) -> Result<Json<ExternalDeviceCatalogResponse>, (StatusCode, String)> {
     require_capabilities(&user, &["config.view"]).map_err(|err| (err.status, err.message))?;
     let catalog = device_catalog::catalog();
     Ok(Json(ExternalDeviceCatalogResponse {
@@ -90,18 +109,23 @@ pub async fn list_devices(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ExternalDeviceSummary>>, (StatusCode, String)> {
     require_capabilities(&user, &["config.view"]).map_err(|err| (err.status, err.message))?;
-    let rows: Vec<(Uuid, String, Option<String>, Option<String>, SqlJson<JsonValue>)> =
-        sqlx::query_as(
-            r#"
+    let rows: Vec<(
+        Uuid,
+        String,
+        Option<String>,
+        Option<String>,
+        SqlJson<JsonValue>,
+    )> = sqlx::query_as(
+        r#"
             SELECT id, name, external_provider, external_id, COALESCE(config, '{}'::jsonb) as config
             FROM nodes
             WHERE external_provider IS NOT NULL
             ORDER BY name
             "#,
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(map_db_error)?;
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(map_db_error)?;
     let devices = rows
         .into_iter()
         .map(|row| ExternalDeviceSummary {
@@ -135,7 +159,11 @@ pub async fn create_device(
     require_capabilities(&user, &["config.write"]).map_err(|err| (err.status, err.message))?;
     let model = device_catalog::find_model(&request.vendor_id, &request.model_id)
         .ok_or_else(|| (StatusCode::BAD_REQUEST, "Unknown device model".to_string()))?;
-    if !model.protocols.iter().any(|entry| entry == &request.protocol) {
+    if !model
+        .protocols
+        .iter()
+        .any(|entry| entry == &request.protocol)
+    {
         return Err((
             StatusCode::BAD_REQUEST,
             "Protocol not supported for this model".to_string(),
@@ -160,10 +188,18 @@ pub async fn create_device(
         leap_client_key_pem: request.leap_client_key_pem.clone(),
         leap_ca_pem: request.leap_ca_pem.clone(),
         leap_verify_ca: request.leap_verify_ca,
+        bacnet_device_instance: request.bacnet_device_instance,
+        bacnet_vendor_id: None,
+        bacnet_bbmd_host: request.bacnet_bbmd_host.clone(),
+        bacnet_bbmd_port: request.bacnet_bbmd_port,
+        bacnet_foreign_ttl_seconds: request.bacnet_foreign_ttl_seconds,
         discovered_points: None,
     };
     let external_id = request.external_id.clone().unwrap_or_else(|| {
-        let host = request.host.clone().unwrap_or_else(|| "unknown".to_string());
+        let host = request
+            .host
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string());
         format!(
             "{}:{}:{}",
             request.vendor_id.trim(),
@@ -284,10 +320,37 @@ pub async fn delete_device(
     Ok(Json(json!({ "status": "ok" })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/integrations/devices/sweep",
+    tag = "integrations",
+    request_body = ExternalDeviceSweepRequest,
+    responses(
+        (status = 200, description = "External device sweep results", body = ExternalDeviceSweepResponse)
+    ),
+    security(
+        ("HTTPBearer" = [])
+    )
+)]
+pub async fn sweep_devices(
+    AuthUser(user): AuthUser,
+    Json(request): Json<ExternalDeviceSweepRequest>,
+) -> Result<Json<ExternalDeviceSweepResponse>, (StatusCode, String)> {
+    require_capabilities(&user, &["config.view"]).map_err(|err| (err.status, err.message))?;
+    let (range, candidates) = sweep_external_network(request.range.as_deref())
+        .await
+        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
+    Ok(Json(ExternalDeviceSweepResponse { range, candidates }))
+}
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/integrations/devices/catalog", get(get_device_catalog))
-        .route("/integrations/devices", get(list_devices).post(create_device))
+        .route("/integrations/devices/sweep", post(sweep_devices))
+        .route(
+            "/integrations/devices",
+            get(list_devices).post(create_device),
+        )
         .route("/integrations/devices/{node_id}/sync", post(sync_device))
         .route("/integrations/devices/{node_id}", delete(delete_device))
 }

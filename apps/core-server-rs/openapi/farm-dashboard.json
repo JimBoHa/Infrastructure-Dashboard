@@ -3275,6 +3275,28 @@
       },
       "ExternalDeviceCreateRequest": {
         "properties": {
+          "bacnet_bbmd_host": {
+            "nullable": true,
+            "type": "string"
+          },
+          "bacnet_bbmd_port": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "bacnet_device_instance": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "bacnet_foreign_ttl_seconds": {
+            "format": "int32",
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
           "external_id": {
             "nullable": true,
             "type": "string"
@@ -3390,6 +3412,70 @@
           "node_id",
           "name",
           "config"
+        ],
+        "type": "object"
+      },
+      "ExternalDeviceSweepCandidate": {
+        "properties": {
+          "display_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "model_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "protocols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vendor_id": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "protocols",
+          "notes"
+        ],
+        "type": "object"
+      },
+      "ExternalDeviceSweepRequest": {
+        "properties": {
+          "range": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ExternalDeviceSweepResponse": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalDeviceSweepCandidate"
+            },
+            "type": "array"
+          },
+          "range": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "range",
+          "candidates"
         ],
         "type": "object"
       },
@@ -10856,6 +10942,41 @@
               }
             },
             "description": "Device catalog"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/integrations/devices/sweep": {
+      "post": {
+        "operationId": "sweep_devices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalDeviceSweepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalDeviceSweepResponse"
+                }
+              }
+            },
+            "description": "External device sweep results"
           }
         },
         "security": [

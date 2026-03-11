@@ -20,6 +20,7 @@ import type { Message } from "../types";
 const MANAGED_VENDOR_IDS = new Set(["generator_ats"]);
 const SUPPORTED_EXTERNAL_PROTOCOLS = new Set([
   "modbus_tcp",
+  "bacnet_ip",
   "snmp",
   "http_json",
   "lutron_lip",
@@ -32,7 +33,7 @@ const HIGHLIGHTED_INTEGRATIONS = [
   "Victron GX",
   "Lutron LIP / LEAP",
   "Schneider / APC meters",
-  "Setra / Metasys / Megatron",
+  "Setra / BACnet / Metasys / Megatron",
   "CPS SunSpec inverters",
   "Tridium Niagara",
   "Multistack",

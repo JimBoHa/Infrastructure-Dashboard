@@ -153,6 +153,24 @@ export const ExternalDeviceSummarySchema = z
 
 export const ExternalDeviceSummariesSchema = z.array(ExternalDeviceSummarySchema);
 
+export const ExternalDeviceSweepCandidateSchema = z
+  .object({
+    host: z.string(),
+    display_name: NullableString.optional().default(null),
+    protocols: z.array(z.string()).default([]),
+    vendor_id: NullableString.optional().default(null),
+    model_id: NullableString.optional().default(null),
+    notes: z.array(z.string()).default([]),
+  })
+  .passthrough();
+
+export const ExternalDeviceSweepResponseSchema = z
+  .object({
+    range: z.string(),
+    candidates: z.array(ExternalDeviceSweepCandidateSchema).default([]),
+  })
+  .passthrough();
+
 export const UpdateNodeDisplayProfileResponseSchema = z
   .object({
     status: z.string(),

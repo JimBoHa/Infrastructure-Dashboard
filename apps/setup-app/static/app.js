@@ -19,6 +19,7 @@ const mqttDetectBtn = document.getElementById("detect-mqtt-host");
 let currentStep = 0;
 let loadedConfig = null;
 let preflightRequested = false;
+let preflightPromise = null;
 
 const SAVE_FIELDS = new Set([
   "bundle_path",
@@ -289,24 +290,32 @@ const apiJson = async (url, options = {}) => {
 };
 
 const runPreflight = async () => {
+  if (preflightPromise) {
+    return preflightPromise;
+  }
   preflightRequested = true;
   preflightResults.innerHTML = "<p class=\"muted\">Checking this Mac…</p>";
-  try {
-    await saveConfig();
-    const data = await apiJson("/api/preflight");
-    renderReadySummary(data.summary);
-    renderChecks(data.checks || []);
-    return data;
-  } catch (err) {
-    renderInstallState({
-      title: "Readiness check",
-      tone: "error",
-      message: "Setup Center could not finish the readiness check.",
-      detail: "Detailed diagnostics were written to the local setup activity log.",
-    });
-    preflightResults.innerHTML = `<p class="muted">${err?.message || err}</p>`;
-    return null;
-  }
+  preflightPromise = (async () => {
+    try {
+      await saveConfig();
+      const data = await apiJson("/api/preflight");
+      renderReadySummary(data.summary);
+      renderChecks(data.checks || []);
+      return data;
+    } catch (err) {
+      renderInstallState({
+        title: "Readiness check",
+        tone: "error",
+        message: "Setup Center could not finish the readiness check.",
+        detail: "Detailed diagnostics were written to the local setup activity log.",
+      });
+      preflightResults.innerHTML = `<p class="muted">${err?.message || err}</p>`;
+      return null;
+    } finally {
+      preflightPromise = null;
+    }
+  })();
+  return preflightPromise;
 };
 
 const ensureReadyForInstall = async () => {
