@@ -35,6 +35,11 @@ const dataRoot = args.get("data-root");
 const backupRoot = args.get("backup-root");
 const logsRoot = args.get("logs-root");
 const upgradeBundlePath = args.get("upgrade-bundle-path");
+const bootstrapAdminName = args.get("bootstrap-admin-name") || "Admin";
+const bootstrapAdminEmail =
+  args.get("bootstrap-admin-email") || "admin@infrastructuredashboard.local";
+const bootstrapAdminPassword =
+  args.get("bootstrap-admin-password") || "InfraSmoke!2026";
 
 const expectedInstallVersion = args.get("expected-install-version") || "0.0.0-test";
 const expectedUpgradeVersion = args.get("expected-upgrade-version") || "0.0.1-test";
@@ -162,6 +167,9 @@ try {
   await page.fill('input[name="install_root"]', installRoot);
   await page.fill('input[name="data_root"]', dataRoot);
   await page.fill('input[name="backup_root"]', backupRoot);
+  await page.fill('input[name="bootstrap_admin_name"]', bootstrapAdminName);
+  await page.fill('input[name="bootstrap_admin_email"]', bootstrapAdminEmail);
+  await page.fill('input[name="bootstrap_admin_password"]', bootstrapAdminPassword);
   if (logsRoot) {
     await page.fill('input[name="logs_root"]', logsRoot);
   } else {
