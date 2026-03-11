@@ -6,6 +6,8 @@ use std::fs::{self, File};
 use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 use crate::cli::UninstallArgs;
 use crate::config::{
@@ -84,13 +86,21 @@ pub fn uninstall(args: UninstallArgs, profile_override: Option<InstallProfile>) 
             .filter(|result| !result.ok && !is_nonfatal_bootout_error(result))
             .collect::<Vec<_>>();
 
-        if launchctl_list_contains(&config.launchd_label_prefix, use_sudo)? {
+        if !wait_for_launchd_labels_gone(
+            &config.launchd_label_prefix,
+            use_sudo,
+            Duration::from_secs(10),
+        )? {
             // Try one more time via service-targets (handles orphaned jobs where plists were removed).
             for suffix in SERVICE_SUFFIXES {
                 let label = label_for(&config.launchd_label_prefix, suffix);
                 let _ = bootout_service_target(target, &label, use_sudo);
             }
-            if launchctl_list_contains(&config.launchd_label_prefix, use_sudo)? {
+            if !wait_for_launchd_labels_gone(
+                &config.launchd_label_prefix,
+                use_sudo,
+                Duration::from_secs(10),
+            )? {
                 bail!(
                     "Uninstall incomplete: launchd jobs still present for prefix {}{}",
                     config.launchd_label_prefix,
@@ -335,6 +345,26 @@ fn launchctl_list_contains(prefix: &str, use_sudo: bool) -> Result<bool> {
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
     Ok(stdout.contains(prefix))
+}
+
+fn wait_for_launchd_labels_gone(
+    prefix: &str,
+    use_sudo: bool,
+    timeout: Duration,
+) -> Result<bool> {
+    if prefix.trim().is_empty() {
+        return Ok(true);
+    }
+
+    let started = Instant::now();
+    while started.elapsed() <= timeout {
+        if !launchctl_list_contains(prefix, use_sudo)? {
+            return Ok(true);
+        }
+        sleep(Duration::from_millis(250));
+    }
+
+    Ok(!launchctl_list_contains(prefix, use_sudo)?)
 }
 
 fn process_owner(
