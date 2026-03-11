@@ -71,6 +71,7 @@ import type {
   ExternalDeviceCreateRequest,
   ExternalDeviceSummary,
 } from "@/types/integrations";
+import { fallbackExternalDeviceCatalog } from "@/lib/fallbackExternalDeviceCatalog";
 import type {
   AnalysisJobCancelResponse,
   AnalysisJobCreateRequest,
@@ -1658,7 +1659,19 @@ export async function fetchSetupCredentials(): Promise<SetupCredential[]> {
 }
 
 export async function fetchExternalDeviceCatalog(): Promise<ExternalDeviceCatalog> {
-  return fetchJsonValidated("/api/integrations/devices/catalog", ExternalDeviceCatalogSchema);
+  try {
+    const catalog = await fetchJsonValidated(
+      "/api/integrations/devices/catalog",
+      ExternalDeviceCatalogSchema,
+    );
+    if (Array.isArray(catalog.vendors) && catalog.vendors.length > 0) {
+      return catalog;
+    }
+  } catch (err) {
+    console.warn("Falling back to bundled external device catalog", err);
+  }
+
+  return ExternalDeviceCatalogSchema.parse(fallbackExternalDeviceCatalog);
 }
 
 export async function fetchExternalDevices(): Promise<ExternalDeviceSummary[]> {

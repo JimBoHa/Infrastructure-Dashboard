@@ -267,6 +267,7 @@ const renderFailureRecovery = ({ title, message, detail }) => {
     message,
     detail: `${detail} Choose whether to keep the current install for troubleshooting or remove it before retrying.`,
     actions: [
+      { key: "recheck-services", label: "Re-check services", tone: "ghost" },
       { key: "keep-failed-install", label: "Keep current install", tone: "ghost" },
       {
         key: "remove-failed-install-preserve",
@@ -440,6 +441,19 @@ const runHealthCheck = async (dashboardUrl = "") => {
   }
 };
 
+const refreshLiveInstallStatus = async () => {
+  try {
+    const data = await apiJson("/api/health-report");
+    if (!data?.ok) return;
+    renderHealthReport(
+      data.report || {},
+      loadedConfig ? `http://127.0.0.1:${loadedConfig.core_port || 8000}/` : "",
+    );
+  } catch (err) {
+    console.debug("Skipping live install status refresh", err);
+  }
+};
+
 const removeFailedInstall = async (preserveTrendsAndSensors = false) => {
   renderInstallState({
     title: "Cleanup",
@@ -587,6 +601,10 @@ installOutput.addEventListener("click", (event) => {
     });
     return;
   }
+  if (action === "recheck-services") {
+    void runHealthCheck(loadedConfig ? `http://127.0.0.1:${loadedConfig.core_port || 8000}/` : "");
+    return;
+  }
   if (action === "remove-failed-install") {
     void removeFailedInstall(false);
   }
@@ -623,6 +641,7 @@ if (mqttDetectBtn) {
 }
 
 loadConfig()
+  .then(() => refreshLiveInstallStatus())
   .catch((err) => {
     renderInstallState({
       title: "Setup Center",

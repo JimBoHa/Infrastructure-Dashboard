@@ -56,6 +56,15 @@ export default function DeviceOnboardingSection({
   const adoptionCount = adoptionQuery.data?.length ?? 0;
   const catalogCount = supportedVendors.reduce((total, vendor) => total + vendor.models.length, 0);
 
+  const jumpToSection = (sectionId: string) => {
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    router.push(`/setup#${sectionId}`);
+  };
+
   const scanForLocalNodes = async () => {
     if (!canEdit) {
       onMessage({ type: "error", text: "This action requires the config.write capability." });
@@ -112,21 +121,42 @@ export default function DeviceOnboardingSection({
             External devices already configured through Setup Center integrations.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <NodeButton onClick={() => router.push("/setup")}>Open Integrations</NodeButton>
+            <NodeButton onClick={() => jumpToSection("setup-integrations-external-devices")}>
+              Open external devices
+            </NodeButton>
           </div>
         </Card>
 
         <Card className="rounded-xl bg-card-inset px-4 py-4">
           <p className="text-sm font-semibold text-card-foreground">Supported device profiles</p>
-          <p className="mt-2 text-3xl font-semibold text-card-foreground">{catalogCount}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Catalog-backed integrations ready to configure now, excluding generator/ATS controllers.
+          <p className="mt-2 text-3xl font-semibold text-card-foreground">
+            {externalCatalogQuery.isLoading ? "..." : externalCatalogQuery.isError ? "!" : catalogCount}
           </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Catalog-backed model templates ready for manual onboarding now, excluding generator/ATS controllers.
+          </p>
+          {externalCatalogQuery.isError ? (
+            <p className="mt-2 text-xs text-rose-600">
+              The device catalog did not load. Open the Integrations section for the exact error.
+            </p>
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <NodeButton onClick={() => jumpToSection("setup-integrations-device-catalog")}>
+              View catalog
+            </NodeButton>
+          </div>
         </Card>
       </div>
 
       <div className="rounded-xl border border-border bg-background px-4 py-4">
         <p className="text-sm font-semibold text-card-foreground">Ready-to-integrate families</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          These are supported integration families, not auto-discovered devices. Use{" "}
+          <span className="font-medium text-card-foreground">Scan now</span> for Infrastructure
+          Dashboard nodes on your LAN. Use{" "}
+          <span className="font-medium text-card-foreground">Open external devices</span> to add
+          third-party systems by host/IP and protocol.
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {HIGHLIGHTED_INTEGRATIONS.map((label) => (
             <span

@@ -144,6 +144,12 @@ export default function IntegrationsSection({
     return selectedVendor?.models.find((model) => model.id === externalDraft.modelId) ?? null;
   }, [selectedVendor, externalDraft.modelId]);
 
+  const catalogVendorCount = externalVendors.length;
+  const catalogModelCount = useMemo(
+    () => externalVendors.reduce((total, vendor) => total + vendor.models.length, 0),
+    [externalVendors],
+  );
+
   useEffect(() => {
     if (!externalCatalogQuery.data) return;
     if (!externalDraft.vendorId && externalVendors.length) {
@@ -978,13 +984,68 @@ export default function IntegrationsSection({
           </Card>
         </div>
 
-        <div>
+        <div id="setup-integrations-device-catalog">
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-card-foreground">Supported device catalog</p>
+              <p className="text-xs text-muted-foreground">
+                Catalog profiles define supported models and point maps. They do not mean those
+                devices were auto-discovered on your network.
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {externalCatalogQuery.isLoading
+                ? "Loading catalog…"
+                : `${catalogVendorCount} vendor families · ${catalogModelCount} model profiles`}
+            </div>
+          </div>
+          <Card className="mt-3 rounded-lg gap-0 bg-card-inset p-4">
+            {externalCatalogQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading supported device profiles…</p>
+            ) : externalCatalogQuery.error ? (
+              <p className="text-sm text-rose-600">
+                Failed to load the device catalog:{" "}
+                {externalCatalogQuery.error instanceof Error
+                  ? externalCatalogQuery.error.message
+                  : "Unknown error"}
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {externalVendors.map((vendor) => (
+                    <span
+                      key={vendor.id}
+                      className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground"
+                    >
+                      {vendor.name} · {vendor.models.length}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Automatic LAN scan is currently available for Infrastructure Dashboard nodes only.
+                  Third-party devices below are onboarded manually by entering their host/IP and
+                  protocol, then clicking <span className="font-medium text-card-foreground">Add device</span>.
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Known match: Setra Power Squad meters should use{" "}
+                  <span className="font-medium text-card-foreground">
+                    Setra → Setra Power Meter (Modbus)
+                  </span>
+                  . Lutron controllers use the Lutron LIP or LEAP profiles, and Megatron water
+                  treatment controllers use the Megatron Modbus profile.
+                </p>
+              </>
+            )}
+          </Card>
+        </div>
+
+        <div id="setup-integrations-external-devices">
           <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold text-card-foreground">External devices (TCP/IP)</p>
               <p className="text-xs text-muted-foreground">
-                Add commercially available devices and auto-map their points using the device
-                catalog.
+                Add supported third-party devices by host/IP, credentials, and protocol, then sync
+                them so Infrastructure Dashboard can create sensors from the catalog.
               </p>
             </div>
             <NodeButton size="xs" onClick={createExternalDeviceEntry} disabled={!canEdit}>
@@ -1186,8 +1247,12 @@ export default function IntegrationsSection({
               ) : null}
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              The catalog defines default point maps; use custom sensors to fill gaps when a
-              vendor-specific profile is missing.
+              Enter the device host/IP and matching protocol, then click{" "}
+              <span className="font-medium text-card-foreground">Add device</span>. After the
+              device appears below, click{" "}
+              <span className="font-medium text-card-foreground">Sync now</span> to poll it and
+              create mapped sensors. There is no automatic network sweep for these third-party
+              devices yet.
             </p>
           </Card>
           <div className="mt-4 grid gap-3">
