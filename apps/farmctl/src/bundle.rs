@@ -346,7 +346,26 @@ fn build_farmctl_binary() -> Result<PathBuf> {
         .arg("--release")
         .current_dir("apps/farmctl");
     run_cmd(cmd)?;
-    Ok(PathBuf::from("apps/farmctl/target/release/farmctl"))
+    resolve_release_binary(Path::new("apps/farmctl"), "farmctl")
+}
+
+fn resolve_release_binary(app_dir: &Path, binary_name: &str) -> Result<PathBuf> {
+    let candidates = [
+        app_dir.join("target/release").join(binary_name),
+        PathBuf::from("target/release").join(binary_name),
+    ];
+    for candidate in candidates {
+        if candidate.exists() {
+            return Ok(candidate);
+        }
+    }
+
+    bail!(
+        "{} binary missing after cargo build (checked {} and {})",
+        binary_name,
+        app_dir.join("target/release").join(binary_name).display(),
+        PathBuf::from("target/release").join(binary_name).display()
+    )
 }
 
 fn build_installer_app(
@@ -448,13 +467,7 @@ fn build_core_server(artifacts_root: &Path) -> Result<()> {
         .arg("apps/core-server-rs/Cargo.toml");
     run_cmd(cmd)?;
 
-    let bin_src = Path::new("apps/core-server-rs/target/release/core-server-rs");
-    if !bin_src.exists() {
-        bail!(
-            "core-server-rs binary missing at {} (cargo build succeeded but binary not found)",
-            bin_src.display()
-        );
-    }
+    let bin_src = resolve_release_binary(Path::new("apps/core-server-rs"), "core-server-rs")?;
     let bin_dest = bin_dir.join("core-server");
     fs::copy(&bin_src, &bin_dest).with_context(|| {
         format!(
@@ -856,7 +869,7 @@ fn build_sidecar(artifacts_root: &Path) -> Result<()> {
     if !status.success() {
         bail!("telemetry-sidecar build failed");
     }
-    let bin_src = Path::new("apps/telemetry-sidecar/target/release/telemetry-sidecar");
+    let bin_src = resolve_release_binary(Path::new("apps/telemetry-sidecar"), "telemetry-sidecar")?;
     let sidecar_dir = artifacts_root.join("telemetry-sidecar");
     fs::create_dir_all(sidecar_dir.join("bin"))?;
     let bin_dest = sidecar_dir.join("bin/telemetry-sidecar");
