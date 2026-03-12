@@ -189,7 +189,6 @@ try {
   // Ready step
   await page.click("#next-step"); // Settings -> Ready
   await page.waitForSelector("#run-preflight", { timeout: 10_000 });
-  await page.click("#run-preflight");
   await waitForCompletedPreflight(page);
 
   // Operations step
