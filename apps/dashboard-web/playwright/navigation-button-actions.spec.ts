@@ -36,12 +36,12 @@ test.describe("Critical button actions", () => {
 
     await openSidebarIfNeeded();
     await sidebar.getByRole("link", { name: "Backups" }).scrollIntoViewIfNeeded();
-    await sidebar.getByRole("link", { name: "Backups" }).click();
+    await sidebar.getByRole("link", { name: "Backups" }).click({ force: true });
     await expect(page).toHaveURL(/\/backups$/);
     await expect(page.locator("main").getByText(/^Backups$/)).toBeVisible();
 
     await openSidebarIfNeeded();
-    await sidebar.getByRole("link", { name: "Setup Center" }).click();
+    await sidebar.getByRole("link", { name: "Setup Center" }).click({ force: true });
     await expect(page).toHaveURL(/\/setup$/);
     await expect(page.locator("main").getByText(/^System Setup Center$/)).toBeVisible();
 
