@@ -27,6 +27,9 @@ BUNDLE_DMG_NAMES = [
 
 WIZARD_FLOW_TIMEOUT_SECONDS = 12 * 60
 WIZARD_FLOW_ATTEMPTS = 2
+NATIVE_DEPS_TIMEOUT_SECONDS = 12 * 60
+BUNDLE_TIMEOUT_SECONDS = 12 * 60
+INSTALLER_DMG_TIMEOUT_SECONDS = 12 * 60
 UNINSTALL_TIMEOUT_SECONDS = 6 * 60
 REINSTALL_TIMEOUT_SECONDS = 10 * 60
 FAILURE_CLEANUP_TIMEOUT_SECONDS = 3 * 60
@@ -344,6 +347,7 @@ def main() -> int:
             native_build = run(
                 [str(farmctl), "native-deps", "--output", str(native_deps)],
                 env,
+                timeout_seconds=NATIVE_DEPS_TIMEOUT_SECONDS,
             )
             ensure_ok(native_build, "native_deps", artifacts_dir)
 
@@ -360,6 +364,7 @@ def main() -> int:
                 str(native_deps),
             ],
             env,
+            timeout_seconds=BUNDLE_TIMEOUT_SECONDS,
         )
         ensure_ok(bundle_one, "bundle_v1", artifacts_dir)
 
@@ -379,6 +384,7 @@ def main() -> int:
                 str(farmctl),
             ],
             env,
+            timeout_seconds=INSTALLER_DMG_TIMEOUT_SECONDS,
         )
         ensure_ok(installer, "installer_dmg", artifacts_dir)
 
@@ -444,6 +450,7 @@ def main() -> int:
                     str(native_deps),
                 ],
                 env,
+                timeout_seconds=BUNDLE_TIMEOUT_SECONDS,
             )
             ensure_ok(bundle_two, "bundle_v2", artifacts_dir)
 
