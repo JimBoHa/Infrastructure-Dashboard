@@ -119,6 +119,74 @@ fn ui_error_response(event: &str, err: anyhow::Error) -> axum::response::Respons
     error_response(err)
 }
 
+fn is_headless_authorization_error(err: &anyhow::Error) -> bool {
+    let message = err.to_string();
+    message.contains("AuthorizationExecuteWithPrivileges failed (status=-60007)")
+        || message.contains("AuthorizationCreate failed (status=-60007)")
+        || message.contains("Authorization prompts are not available in this context")
+}
+
+fn shell_escape(value: &str) -> String {
+    let mut out = String::with_capacity(value.len() + 2);
+    out.push('\'');
+    for ch in value.chars() {
+        if ch == '\'' {
+            out.push_str("'\\''");
+        } else {
+            out.push(ch);
+        }
+    }
+    out.push('\'');
+    out
+}
+
+fn interactive_uninstall_command(
+    config: &SetupConfig,
+    config_path: &PathBuf,
+    preserve_trends_and_sensors: bool,
+) -> String {
+    let mut command = vec![
+        "sudo".to_string(),
+        shell_escape(&config.farmctl_path),
+        "uninstall".to_string(),
+        "--config".to_string(),
+        shell_escape(&config_path.display().to_string()),
+        "--remove-roots".to_string(),
+        "--yes".to_string(),
+    ];
+    if preserve_trends_and_sensors {
+        command.push("--preserve-trends-and-sensors".to_string());
+    }
+    command.join(" ")
+}
+
+fn interactive_uninstall_response(
+    state: &ApiState,
+    config: &SetupConfig,
+    preserve_trends_and_sensors: bool,
+    err: anyhow::Error,
+) -> axum::response::Response {
+    let manual_command =
+        interactive_uninstall_command(config, &state.config_path, preserve_trends_and_sensors);
+    let detail = if preserve_trends_and_sensors {
+        "Run the Terminal command below from your macOS user session. It preserves trend data and sensor names in an archive before removing the install."
+    } else {
+        "Run the Terminal command below from your macOS user session. It removes the managed services and local install roots."
+    };
+    let response = json!({
+        "ok": false,
+        "requires_interactive_admin": true,
+        "message": "Setup Center cannot show a macOS admin prompt from the installed background service.",
+        "detail": detail,
+        "manual_command": manual_command,
+        "activity_log": activity_log_path(),
+        "error": err.to_string(),
+        "preserve_trends_and_sensors": preserve_trends_and_sensors,
+    });
+    append_activity_log("install.cleanup.run", response.clone());
+    Json(response).into_response()
+}
+
 pub async fn serve(args: ServeArgs, profile_override: Option<InstallProfile>) -> Result<()> {
     let config_path = resolve_config_path(args.config);
     let static_root = args.static_root.clone().or_else(|| {
@@ -361,7 +429,17 @@ async fn run_uninstall_action(
         &[],
     ) {
         Ok(result) => result,
-        Err(err) => return ui_error_response("install.cleanup.run", err),
+        Err(err) => {
+            if is_headless_authorization_error(&err) {
+                return interactive_uninstall_response(
+                    state,
+                    &config,
+                    preserve_trends_and_sensors,
+                    err,
+                );
+            }
+            return ui_error_response("install.cleanup.run", err);
+        }
     };
 
     let message = if farmctl_result.ok {
@@ -688,4 +766,32 @@ fn should_handoff_to_launchd(config: &SetupConfig) -> bool {
         return false;
     }
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::default_config;
+
+    #[test]
+    fn headless_authorization_errors_are_detected() {
+        let err = anyhow::anyhow!(
+            "AuthorizationExecuteWithPrivileges failed (status=-60007).\nAuthorization prompts are not available in this context"
+        );
+        assert!(is_headless_authorization_error(&err));
+    }
+
+    #[test]
+    fn interactive_uninstall_command_includes_preserve_flag_when_requested() {
+        let mut config = default_config().expect("default config");
+        config.farmctl_path = "/usr/local/infrastructure-dashboard/bin/farmctl".to_string();
+        let config_path =
+            PathBuf::from("/Users/Shared/InfrastructureDashboard/setup/config.json");
+        let command = interactive_uninstall_command(&config, &config_path, true);
+        assert!(command.contains("sudo"));
+        assert!(command.contains("--remove-roots"));
+        assert!(command.contains("--yes"));
+        assert!(command.contains("--preserve-trends-and-sensors"));
+        assert!(command.contains("/usr/local/infrastructure-dashboard/bin/farmctl"));
+    }
 }

@@ -114,6 +114,14 @@ const summaryCard = (title, value, note = "") => `
   </div>
 `;
 
+const escapeHtml = (value = "") =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
 const renderConfigSummaries = (config) => {
   welcomeSummary.innerHTML = [
     summaryCard(
@@ -296,6 +304,35 @@ const renderFailureRecovery = ({ title, message, detail }) => {
         tone: "ghost",
       },
       { key: "remove-failed-install", label: "Remove failed install", tone: "primary" },
+    ],
+  });
+};
+
+const renderInteractiveAdminFallback = ({
+  title,
+  message,
+  detail,
+  manualCommand,
+  preserveTrendsAndSensors = false,
+}) => {
+  const escapedCommand = escapeHtml(manualCommand || "");
+  renderInstallState({
+    title,
+    tone: "warn",
+    message,
+    detail: `${detail}<br><code class="command-block">${escapedCommand}</code>`,
+    actions: [
+      { key: "recheck-services", label: "Re-check services", tone: "ghost" },
+      { key: "keep-failed-install", label: "Keep current install", tone: "ghost" },
+      {
+        key: preserveTrendsAndSensors
+          ? "remove-failed-install"
+          : "remove-failed-install-preserve",
+        label: preserveTrendsAndSensors
+          ? "Remove everything instead"
+          : "Remove but keep trend archive",
+        tone: "ghost",
+      },
     ],
   });
 };
@@ -516,6 +553,18 @@ const removeFailedInstall = async (preserveTrendsAndSensors = false) => {
         preserve_trends_and_sensors: preserveTrendsAndSensors,
       }),
     });
+    if (data.requires_interactive_admin) {
+      renderInteractiveAdminFallback({
+        title: "Cleanup",
+        message: data.message || "Cleanup requires an interactive admin prompt.",
+        detail:
+          data.detail ||
+          "Setup Center cannot complete this uninstall from the installed background service.",
+        manualCommand: data.manual_command,
+        preserveTrendsAndSensors,
+      });
+      return;
+    }
     if (!data.ok) {
       renderFailureRecovery({
         title: "Cleanup",
