@@ -20,6 +20,7 @@ let currentStep = 0;
 let loadedConfig = null;
 let preflightRequested = false;
 let preflightPromise = null;
+let formDirty = false;
 
 const SAVE_FIELDS = new Set([
   "bundle_path",
@@ -72,7 +73,9 @@ const loadConfig = async () => {
     throw new Error(data?.error || "Failed to load config");
   }
   loadedConfig = data;
-  populateForm(data);
+  if (!formDirty) {
+    populateForm(data);
+  }
   renderConfigSummaries(data);
   return data;
 };
@@ -156,24 +159,41 @@ const prettyCheckName = (id) =>
     .replace(/-/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-const renderChecks = (checks = []) => {
-  if (!checks.length) {
-    preflightResults.innerHTML = "<p class=\"muted\">No readiness data returned.</p>";
-    return;
-  }
-  preflightResults.innerHTML = checks
+const checkTone = (status) => (["ok", "warn", "error"].includes(status) ? status : "info");
+
+const checkLabel = (status) => {
+  if (status === "error") return "fix";
+  if (status === "info") return "checking";
+  return status;
+};
+
+const renderCheckMarkup = (checks = []) =>
+  checks
     .map(
       (check) => `
-        <div class="check">
+        <div class="check" data-check-id="${check.id}">
           <div>
             <strong>${prettyCheckName(check.id)}</strong>
             <span>${check.message}</span>
           </div>
-          <span class="badge ${check.status}">${check.status === "error" ? "fix" : check.status}</span>
+          <span class="badge ${checkTone(check.status)}">${checkLabel(check.status)}</span>
         </div>
       `,
     )
     .join("");
+
+const renderChecks = (checks = []) => {
+  if (!checks.length) {
+    preflightResults.innerHTML = renderCheckMarkup([
+      {
+        id: "readiness",
+        status: "warn",
+        message: "No readiness data returned.",
+      },
+    ]);
+    return;
+  }
+  preflightResults.innerHTML = renderCheckMarkup(checks);
 };
 
 const renderReadySummary = (summary) => {
@@ -294,7 +314,14 @@ const runPreflight = async () => {
     return preflightPromise;
   }
   preflightRequested = true;
-  preflightResults.innerHTML = "<p class=\"muted\">Checking this Mac…</p>";
+  preflightBtn.disabled = true;
+  renderChecks([
+    {
+      id: "preflight-pending",
+      status: "info",
+      message: "Checking this Mac and saving the latest settings…",
+    },
+  ]);
   preflightPromise = (async () => {
     try {
       await saveConfig();
@@ -309,9 +336,16 @@ const runPreflight = async () => {
         message: "Setup Center could not finish the readiness check.",
         detail: "Detailed diagnostics were written to the local setup activity log.",
       });
-      preflightResults.innerHTML = `<p class="muted">${err?.message || err}</p>`;
+      renderChecks([
+        {
+          id: "readiness",
+          status: "error",
+          message: err?.message || String(err),
+        },
+      ]);
       return null;
     } finally {
+      preflightBtn.disabled = false;
       preflightPromise = null;
     }
   })();
@@ -626,6 +660,16 @@ toggleAdvancedBtn.addEventListener("click", () => {
   const enabled = form.dataset.advanced === "true";
   form.dataset.advanced = enabled ? "false" : "true";
   toggleAdvancedBtn.textContent = enabled ? "Show advanced" : "Hide advanced";
+});
+
+form.addEventListener("input", () => {
+  formDirty = true;
+  preflightRequested = false;
+});
+
+form.addEventListener("change", () => {
+  formDirty = true;
+  preflightRequested = false;
 });
 
 if (mqttDetectBtn) {

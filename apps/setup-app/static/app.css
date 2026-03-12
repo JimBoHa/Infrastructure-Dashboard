@@ -324,6 +324,11 @@ input:focus {
   color: var(--warn);
 }
 
+.badge.info {
+  background: rgba(87, 99, 116, 0.16);
+  color: var(--muted);
+}
+
 .badge.error {
   background: var(--danger-soft);
   color: var(--danger);
