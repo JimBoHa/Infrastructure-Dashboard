@@ -6,7 +6,7 @@ UI changes must follow the UI/UX guardrails in `AGENTS.md` (page patterns + toke
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - Core server API running locally (`make core`) or remotely. The dashboard proxies `/api/*` to the core server via Next rewrites; set `FARM_CORE_API_BASE` to the API origin (defaults to `http://127.0.0.1:8000`).
 - If auth is enabled on the core server, sign in via `/login` (the dashboard obtains a token from the core server and persists it). Dev fallback: set `NEXT_PUBLIC_AUTH_TOKEN=<token>` in `.env.local` and restart.
 
@@ -44,12 +44,15 @@ Vitest + React Testing Library cover critical UI flows (adoption wizard, calenda
 ```bash
 npm run lint
 npm test -- --run --watch=false
+npm run test:buttons
 ```
 
 E2E smoke (required before marking work Done):
 ```bash
 make e2e-web-smoke
 ```
+
+`npm run test:buttons` is the fast local browser gate for critical button-driven flows. It boots a local Next.js server automatically and verifies the main navigation, setup actions, mobile shell controls, deployment wizard buttons, and node-scan actions before you rely on GitHub CI.
 
 Local CI from repo root runs this as `make ci-web`; full suite: `make ci` (iOS runs use the disposable simulator helper, set `REUSE_SIM=1` to reuse).
 

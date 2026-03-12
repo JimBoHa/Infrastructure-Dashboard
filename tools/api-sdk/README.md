@@ -13,7 +13,7 @@ This toolchain keeps the core OpenAPI contract and generated SDKs in sync across
 ## Prerequisites
 
 - Python 3.11+
-- Node 20+
+- Node 24+
 - Java 17+ (for `openapi-generator-cli`)
 - Rust toolchain (for Rust OpenAPI export)
 

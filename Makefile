@@ -32,7 +32,7 @@ help:
 	@echo "  make seed - seed demo data"
 	@echo "  make ci   - run full local test suite (core-server, node-agent, dashboard)"
 	@echo "  make ci-smoke - run fast smoke tests (core-server, node-agent, dashboard)"
-	@echo "  make ci-web-smoke-build - run dashboard-web lint + smoke + build"
+	@echo "  make ci-web-smoke-build - run dashboard-web lint + vitest smoke + Playwright button smoke + build"
 	@echo "  make ci-farmctl-smoke - run fast farmctl cargo tests"
 	@echo "  make ci-integrity-guardrail - enforce production token guardrail allowlist"
 	@echo "  make ci-full - run full test suite (core-server, node-agent, dashboard)"
@@ -52,7 +52,7 @@ help:
 
 bootstrap:
 	@if ! command -v poetry >/dev/null 2>&1; then echo "Poetry not installed; see docs/README.md"; exit 1; fi
-	@if ! command -v npm >/dev/null 2>&1; then echo "npm not installed; install Node.js 20+ first"; exit 1; fi
+	@if ! command -v npm >/dev/null 2>&1; then echo "npm not installed; install Node.js 24+ first"; exit 1; fi
 	cd apps/node-agent && poetry install
 	cd apps/dashboard-web && npm install
 
@@ -180,10 +180,10 @@ ci-node-smoke:
 	cd $(NODE_DIR) && PYTHONPATH=. poetry run pytest -k smoke
 
 ci-web:
-	cd $(DASH_DIR) && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run lint && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run test
+	cd $(DASH_DIR) && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run lint && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run test && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run test:buttons
 
 ci-web-smoke:
-	cd $(DASH_DIR) && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run lint && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run test:smoke
+	cd $(DASH_DIR) && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run lint && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run test:smoke && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run test:buttons
 
 ci-web-smoke-build: ci-web-smoke
 	cd $(DASH_DIR) && CI=1 NEXT_PUBLIC_API_BASE=$(NEXT_PUBLIC_API_BASE) npm run build

@@ -194,7 +194,7 @@ All tests and linting are run locally (no external runners). The pre-commit hook
 
 - Doc/log/image-only changes: skip tests.
 - High-risk stack changes (core-server, node-agent, telemetry-sidecar, infra, Sim Lab tooling, proto): `make e2e-web-smoke` (boots the full Sim Lab stack and runs the Playwright adoption smoke).
-- Dashboard-web-only changes: `make ci-web-smoke` (lint + Vitest smoke).
+- Dashboard-web-only changes: `make ci-web-smoke` (lint + Vitest smoke + Playwright button smoke).
 - Unknown paths default to the stack E2E smoke.
 
 Native Postgres/Mosquitto/Redis must be running for `make e2e-web-smoke` (installer/launchd). For deeper regression coverage, run `make ci` (full suite) or the component-specific commands below.
@@ -210,7 +210,7 @@ Install the shared pre-commit hook with `tools/git-hooks/install.sh` (use `--for
 
 ## Getting Started
 
-1. Fork/clone the repository and install the language toolchains you plan to touch (Python 3.11+, Node 20+).
+1. Fork/clone the repository and install the language toolchains you plan to touch (Python 3.11+, Node 24+).
 2. Install dependencies: `make bootstrap`.
 3. Copy `.env.example` files into place (only if you need overrides):
    - Core server: `cp apps/core-server-rs/.env.example apps/core-server-rs/.env`

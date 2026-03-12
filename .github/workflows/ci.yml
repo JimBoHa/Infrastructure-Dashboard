@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   pull_request:
     branches: [main]
@@ -187,7 +190,7 @@ jobs:
           java-version: "17"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -236,7 +239,7 @@ jobs:
           python-version: "3.11"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: apps/dashboard-web/package-lock.json
       - name: Validate release version (web)
@@ -244,6 +247,9 @@ jobs:
       - name: Install deps
         working-directory: apps/dashboard-web
         run: npm ci
+      - name: Install Playwright browsers
+        working-directory: apps/dashboard-web
+        run: npx playwright install --with-deps chromium
       - name: Lint
         working-directory: apps/dashboard-web
         run: npm run lint
@@ -275,7 +281,7 @@ jobs:
         run: poetry install --no-root
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: apps/dashboard-web/package-lock.json
       - uses: dtolnay/rust-toolchain@stable

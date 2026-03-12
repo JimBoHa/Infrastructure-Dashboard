@@ -35,6 +35,14 @@ REINSTALL_TIMEOUT_SECONDS = 10 * 60
 FAILURE_CLEANUP_TIMEOUT_SECONDS = 3 * 60
 
 
+def normalize_output(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
 def run(
     cmd: list[str],
     env: dict[str, str],
@@ -59,8 +67,8 @@ def run_with_timeout(
             timeout=timeout_seconds,
         )
     except subprocess.TimeoutExpired as exc:
-        stdout = exc.stdout or ""
-        stderr = exc.stderr or ""
+        stdout = normalize_output(exc.stdout)
+        stderr = normalize_output(exc.stderr)
         if stderr and not stderr.endswith("\n"):
             stderr += "\n"
         stderr += f"Timed out after {timeout_seconds} seconds.\n"
