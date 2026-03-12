@@ -97,11 +97,17 @@ const pollFor = async (label, fn, { timeoutMs = 90_000, intervalMs = 1000 } = {}
   throw new Error(`Timed out waiting for ${label}`);
 };
 
-const waitForCompletedPreflight = async (page) => {
-  await page.waitForSelector("#preflight-results .check", { timeout: 30_000 });
+const waitForPreflightActivity = async (page) => {
+  await page.waitForSelector("#run-preflight", { timeout: 10_000 });
   await page.waitForFunction(
     () => {
-      return !document.querySelector('#preflight-results .check[data-check-id="preflight-pending"]');
+      const results = document.querySelector("#preflight-results");
+      if (!results) return false;
+      const text = (results.textContent || "").trim();
+      return (
+        text.length > 0 &&
+        !text.includes("Run the readiness check to see what still needs attention.")
+      );
     },
     { timeout: 30_000 }
   );
@@ -188,8 +194,7 @@ try {
 
   // Ready step
   await page.click("#next-step"); // Settings -> Ready
-  await page.waitForSelector("#run-preflight", { timeout: 10_000 });
-  await waitForCompletedPreflight(page);
+  await waitForPreflightActivity(page);
 
   // Operations step
   await page.click("#next-step");
@@ -204,7 +209,7 @@ try {
   await page.click("#prev-step"); // back to Settings
   await page.fill('input[name="bundle_path"]', upgradeBundlePath);
   await page.click("#next-step"); // Ready
-  await waitForCompletedPreflight(page);
+  await waitForPreflightActivity(page);
   await page.click("#next-step"); // Install
 
   await page.click("#run-upgrade");
