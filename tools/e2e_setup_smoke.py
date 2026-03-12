@@ -25,9 +25,35 @@ BUNDLE_DMG_NAMES = [
     "FarmDashboardController-{version}.dmg",
 ]
 
+WIZARD_FLOW_TIMEOUT_SECONDS = 12 * 60
+WIZARD_FLOW_ATTEMPTS = 2
+
 
 def run(cmd: list[str], env: dict[str, str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, capture_output=True, text=True, env=env)
+
+
+def run_with_timeout(
+    cmd: list[str],
+    env: dict[str, str],
+    *,
+    timeout_seconds: int,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout or ""
+        stderr = exc.stderr or ""
+        if stderr and not stderr.endswith("\n"):
+            stderr += "\n"
+        stderr += f"Timed out after {timeout_seconds} seconds.\n"
+        return subprocess.CompletedProcess(cmd, 124, stdout, stderr)
 
 
 def ensure_ok(result: subprocess.CompletedProcess[str], label: str, artifacts_dir: Path) -> None:
@@ -453,23 +479,39 @@ def main() -> int:
                 wizard_script = (
                     repo_root / "apps/dashboard-web/scripts/setup-wizard-smoke.mjs"
                 )
-                wizard = subprocess.run(
-                    [
-                        "node",
-                        str(wizard_script),
-                        f"--base-url=http://127.0.0.1:{setup_port}",
-                        f"--install-root={install_root}",
-                        f"--data-root={data_root}",
-                        f"--backup-root={backup_root}",
-                        f"--logs-root={logs_root}",
-                        f"--upgrade-bundle-path={bundle_v2}",
-                        "--expected-install-version=0.0.0-test",
-                        "--expected-upgrade-version=0.0.1-test",
-                    ],
-                    env=env,
-                    capture_output=True,
-                    text=True,
-                )
+                wizard_cmd = [
+                    "node",
+                    str(wizard_script),
+                    f"--base-url=http://127.0.0.1:{setup_port}",
+                    f"--install-root={install_root}",
+                    f"--data-root={data_root}",
+                    f"--backup-root={backup_root}",
+                    f"--logs-root={logs_root}",
+                    f"--upgrade-bundle-path={bundle_v2}",
+                    "--expected-install-version=0.0.0-test",
+                    "--expected-upgrade-version=0.0.1-test",
+                ]
+                wizard = None
+                for attempt in range(1, WIZARD_FLOW_ATTEMPTS + 1):
+                    wizard = run_with_timeout(
+                        wizard_cmd,
+                        env,
+                        timeout_seconds=WIZARD_FLOW_TIMEOUT_SECONDS,
+                    )
+                    if wizard.returncode == 0:
+                        break
+                    if (
+                        wizard.returncode == 124
+                        and attempt < WIZARD_FLOW_ATTEMPTS
+                    ):
+                        print(
+                            f"wizard_flow attempt {attempt} timed out after "
+                            f"{WIZARD_FLOW_TIMEOUT_SECONDS}s; retrying once",
+                            file=sys.stderr,
+                        )
+                        continue
+                    break
+                assert wizard is not None
                 ensure_ok(wizard, "wizard_flow", artifacts_dir)
             finally:
                 serve_proc.terminate()
