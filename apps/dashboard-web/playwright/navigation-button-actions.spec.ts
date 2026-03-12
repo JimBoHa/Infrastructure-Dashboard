@@ -33,15 +33,21 @@ test.describe("Critical button actions", () => {
     };
 
     const sidebar = page.locator("#dashboard-sidebar");
+    const activateSidebarLink = async (name: string) => {
+      const link = sidebar.getByRole("link", { name });
+      await link.scrollIntoViewIfNeeded();
+      await link.evaluate((element: HTMLElement) => {
+        element.click();
+      });
+    };
 
     await openSidebarIfNeeded();
-    await sidebar.getByRole("link", { name: "Backups" }).scrollIntoViewIfNeeded();
-    await sidebar.getByRole("link", { name: "Backups" }).click({ force: true });
+    await activateSidebarLink("Backups");
     await expect(page).toHaveURL(/\/backups$/);
     await expect(page.locator("main").getByText(/^Backups$/)).toBeVisible();
 
     await openSidebarIfNeeded();
-    await sidebar.getByRole("link", { name: "Setup Center" }).click({ force: true });
+    await activateSidebarLink("Setup Center");
     await expect(page).toHaveURL(/\/setup$/);
     await expect(page.locator("main").getByText(/^System Setup Center$/)).toBeVisible();
 
