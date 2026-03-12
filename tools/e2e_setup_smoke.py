@@ -27,17 +27,25 @@ BUNDLE_DMG_NAMES = [
 
 WIZARD_FLOW_TIMEOUT_SECONDS = 12 * 60
 WIZARD_FLOW_ATTEMPTS = 2
+UNINSTALL_TIMEOUT_SECONDS = 6 * 60
+REINSTALL_TIMEOUT_SECONDS = 10 * 60
+FAILURE_CLEANUP_TIMEOUT_SECONDS = 3 * 60
 
 
-def run(cmd: list[str], env: dict[str, str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, capture_output=True, text=True, env=env)
+def run(
+    cmd: list[str],
+    env: dict[str, str],
+    *,
+    timeout_seconds: int | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return run_with_timeout(cmd, env, timeout_seconds=timeout_seconds)
 
 
 def run_with_timeout(
     cmd: list[str],
     env: dict[str, str],
     *,
-    timeout_seconds: int,
+    timeout_seconds: int | None,
 ) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
@@ -555,6 +563,7 @@ def main() -> int:
                 "--yes",
             ],
             env,
+            timeout_seconds=UNINSTALL_TIMEOUT_SECONDS,
         )
         ensure_ok(uninstall, "uninstall", artifacts_dir)
         if install_root.exists() or data_root.exists() or logs_root.exists() or state_dir.exists():
@@ -595,6 +604,7 @@ def main() -> int:
                     str(config_path),
                 ],
                 env,
+                timeout_seconds=REINSTALL_TIMEOUT_SECONDS,
             )
             ensure_ok(reinstall, "reinstall", artifacts_dir)
             state = read_state(install_root / "state.json")
@@ -635,6 +645,7 @@ def main() -> int:
                         "--yes",
                     ],
                     env,
+                    timeout_seconds=FAILURE_CLEANUP_TIMEOUT_SECONDS,
                 )
                 if cleanup.returncode != 0:
                     artifacts_dir.mkdir(parents=True, exist_ok=True)
