@@ -3,7 +3,7 @@
 Use this page as the single entry point for engineering docs. It links to component guides, testing policy, and production-readiness checklists so newcomers know where to go next.
 
 ## Quick Start
-- Install prerequisites: Python 3.11+ with Poetry, Node 20+, native Postgres/Mosquitto/Redis via the installer/launchd.
+- Install prerequisites: Python 3.11+ with Poetry, Node 24+, native Postgres/Mosquitto/Redis via the installer/launchd.
 - Fresh machine checklist: `docs/development/new_machine.md`.
 - Install dependencies: `make bootstrap`.
 - Apply migrations with `make migrate`, seed demo data with `make seed` (native DB must be running).

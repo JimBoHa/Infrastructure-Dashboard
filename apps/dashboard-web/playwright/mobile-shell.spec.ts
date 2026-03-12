@@ -67,12 +67,12 @@ test.describe("Mobile shell interactions", () => {
 
     const accountButton = page.getByRole("button", { name: "Account menu" });
     await accountButton.click();
-    await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Log out" })).toBeVisible();
 
     await maybeSaveScreenshot({ page, name: "account_menu_open" });
 
     await page.locator("main").click();
-    await expect(page.getByRole("button", { name: "Log out" })).toBeHidden();
+    await expect(page.getByRole("menuitem", { name: "Log out" })).toBeHidden();
   });
 
   test("sensors detail drawer opens without crashing", async ({ page }) => {

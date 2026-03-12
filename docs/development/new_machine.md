@@ -6,7 +6,7 @@ This doc is the “fresh clone on a new computer” checklist for Farm Dashboard
 
 - Git
 - Python 3.11+ and Poetry
-- Node.js 20+ (npm)
+- Node.js 24+ (npm)
 - Native Postgres/Mosquitto/Redis via the installer/launchd
 
 Optional (only needed for specific workflows):

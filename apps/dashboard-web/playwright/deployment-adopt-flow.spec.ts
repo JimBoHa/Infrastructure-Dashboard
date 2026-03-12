@@ -81,7 +81,7 @@ test.describe("Deployment end-to-end UX", () => {
 
     await page.goto("/provisioning");
     await expect(page).toHaveURL(/deployment/);
-    await expect(page.getByRole("heading", { name: /deploy & adopt a pi 5 node/i })).toBeVisible();
+    await expect(page.locator("main").getByText(/deploy & adopt a pi 5 node/i)).toBeVisible();
 
     await maybeSaveScreenshot({ page, name: "provisioning_redirects_to_deployment" });
   });
@@ -116,7 +116,9 @@ test.describe("Deployment end-to-end UX", () => {
 
     await page.getByRole("button", { name: /^adopt$/i }).click();
 
-    await expect(page.getByRole("button", { name: /configure sensors/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Configure sensors", exact: true }),
+    ).toBeVisible();
 
     await maybeSaveScreenshot({ page, name: "deployment_adopted_configure_sensors" });
   });

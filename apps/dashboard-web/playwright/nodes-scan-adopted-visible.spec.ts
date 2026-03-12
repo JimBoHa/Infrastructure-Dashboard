@@ -51,10 +51,10 @@ test.describe("Nodes scan UX", () => {
     });
     expect(scanned).toBe(1);
 
-    await page.getByRole("button", { name: /scan for nodes/i }).tap();
+    await page.getByRole("button", { name: /scan for nodes/i }).click();
     await expect(page.getByText(/scan complete: found 1/i)).toBeVisible();
 
-    await page.getByRole("button", { name: /more details/i }).first().tap();
+    await page.getByRole("button", { name: /more details/i }).first().click();
 
     await expect(page).toHaveURL(/\/nodes\/detail\?/);
     await expect(page.getByRole("heading", { name: /Playwright Node/i })).toBeVisible();
