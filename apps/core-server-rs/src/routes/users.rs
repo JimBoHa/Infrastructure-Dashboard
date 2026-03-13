@@ -26,6 +26,9 @@ fn ensure_admin_defaults(role: &str, capabilities: &mut Vec<String>) {
     if !role.trim().eq_ignore_ascii_case("admin") {
         return;
     }
+    if !capabilities.iter().any(|cap| cap == "config.view") {
+        capabilities.push("config.view".to_string());
+    }
     if !capabilities.iter().any(|cap| cap == "nodes.view") {
         capabilities.push("nodes.view".to_string());
     }
@@ -85,6 +88,7 @@ fn bootstrap_user_create_allowed(peer_ip: std::net::IpAddr) -> bool {
 fn default_capabilities_for_role(role: &str) -> Vec<String> {
     match role.trim().to_lowercase().as_str() {
         "admin" => vec![
+            "config.view",
             "nodes.view",
             "sensors.view",
             "outputs.view",
@@ -457,6 +461,7 @@ mod tests {
             "".to_string(),
         ]);
         ensure_admin_defaults("admin", &mut capabilities);
+        assert!(capabilities.contains(&"config.view".to_string()));
         assert!(capabilities.contains(&"config.write".to_string()));
         assert!(capabilities.contains(&"users.manage".to_string()));
     }

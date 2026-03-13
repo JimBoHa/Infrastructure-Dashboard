@@ -5,6 +5,7 @@ use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 use sqlx::types::Json as SqlJson;
+use url::Url;
 use uuid::Uuid;
 
 use crate::auth::{require_capabilities, AuthUser};
@@ -169,16 +170,55 @@ pub async fn create_device(
             "Protocol not supported for this model".to_string(),
         ));
     }
+    let mut host = request
+        .host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+    let mut http_base_url = request
+        .http_base_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+    if request.protocol == "http_json" {
+        if http_base_url.is_none() {
+            if let Some(host_text) = host.as_deref() {
+                http_base_url = Some(if host_text.starts_with("http://") || host_text.starts_with("https://") {
+                    host_text.to_string()
+                } else {
+                    format!("http://{host_text}")
+                });
+            }
+        }
+        if let Some(base_url) = http_base_url.as_deref() {
+            if let Ok(parsed) = Url::parse(base_url) {
+                host = parsed.host_str().map(str::to_string).or(host);
+            }
+        }
+        if request.vendor_id == "metasys" && request.model_id == "metasys_server" {
+            if let Some(base_url) = http_base_url.as_deref() {
+                if let Ok(mut parsed) = Url::parse(base_url) {
+                    if parsed.path().is_empty() || parsed.path() == "/" {
+                        parsed.set_path("/metasys");
+                        http_base_url = Some(parsed.to_string());
+                    }
+                }
+            }
+        }
+    }
+
     let device_config = ExternalDeviceConfig {
         vendor_id: request.vendor_id.clone(),
         model_id: request.model_id.clone(),
         protocol: request.protocol.clone(),
-        host: request.host.clone(),
+        host: host.clone(),
         port: request.port,
         unit_id: request.unit_id,
         poll_interval_seconds: request.poll_interval_seconds,
         snmp_community: request.snmp_community.clone(),
-        http_base_url: request.http_base_url.clone(),
+        http_base_url: http_base_url.clone(),
         http_username: request.http_username.clone(),
         http_password: request.http_password.clone(),
         lip_username: request.lip_username.clone(),
@@ -196,9 +236,9 @@ pub async fn create_device(
         discovered_points: None,
     };
     let external_id = request.external_id.clone().unwrap_or_else(|| {
-        let host = request
-            .host
+        let host = host
             .clone()
+            .or_else(|| http_base_url.clone())
             .unwrap_or_else(|| "unknown".to_string());
         format!(
             "{}:{}:{}",

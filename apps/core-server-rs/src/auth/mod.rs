@@ -233,11 +233,16 @@ async fn resolve_user_from_db(
 
     let row = row.ok_or_else(|| AppError::unauthorized("Missing or invalid token"))?;
 
+    let mut capabilities: HashSet<String> = row.capabilities.0.into_iter().collect();
+    if capabilities.contains("config.write") {
+        capabilities.insert("config.view".to_string());
+    }
+
     Ok(AuthenticatedUser {
         id: row.id.to_string(),
         email: row.email,
         role: canonicalize_role(&row.role),
-        capabilities: row.capabilities.0.into_iter().collect(),
+        capabilities,
         source: source.to_string(),
     })
 }

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use bacnet_client::client::BACnetClient;
 use bacnet_encoding::primitives::decode_application_value;
 use bacnet_transport::bip::{BipTransport, ForeignDeviceConfig};
-use bacnet_types::enums::{EngineeringUnits, ObjectType, PropertyIdentifier};
+use bacnet_types::enums::{BvlcResultCode, EngineeringUnits, ObjectType, PropertyIdentifier};
 use bacnet_types::primitives::{ObjectIdentifier, PropertyValue};
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
@@ -22,13 +22,14 @@ use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 use tokio_rustls::TlsConnector;
 use tokio_util::sync::CancellationToken;
 use tracing::warn;
+use url::Url;
 use uuid::Uuid;
 
 use crate::device_catalog::{find_model, DeviceModel, DevicePoint};
 use crate::ids;
 use crate::state::AppState;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ExternalDeviceConfig {
     pub vendor_id: String,
     pub model_id: String,
@@ -146,8 +147,9 @@ pub async fn poll_device_by_id(state: &AppState, node_id: Uuid) -> Result<(Strin
     .fetch_one(&state.db)
     .await
     .context("failed to load external device")?;
-    let mut config =
+    let original_config =
         parse_external_device_config(&device.config.0).context("invalid device config")?;
+    let mut config = normalize_runtime_external_device_config(state, &original_config).await?;
     let model = find_model(&config.vendor_id, &config.model_id).context("unknown device model")?;
     let discovery = discover_device_points(state, &device, &config, &model).await?;
     if let Some(points) = discovery.points {
@@ -159,19 +161,38 @@ pub async fn poll_device_by_id(state: &AppState, node_id: Uuid) -> Result<(Strin
     if let Some(vendor_id) = discovery.bacnet_vendor_id {
         config.bacnet_vendor_id = Some(vendor_id);
     }
-    if config.discovered_points.is_some()
-        || config.bacnet_device_instance.is_some()
-        || config.bacnet_vendor_id.is_some()
-    {
+    if config != original_config {
         update_device_config(state, device.id, &config).await?;
     }
     let points = points_for_device(&config, &model);
-    poll_device_with_config(state, &device, &config, &model).await?;
-    Ok((model.id, points.len()))
+    match poll_device_with_config(state, &device, &config, &model).await {
+        Ok(()) => Ok((model.id, points.len())),
+        Err(modbus_err)
+            if config.protocol == "modbus_tcp"
+                && model.protocols.iter().any(|protocol| protocol == "bacnet_ip") =>
+        {
+            match try_bacnet_fallback_sync(state, &device, &config, &model).await {
+                Ok(Some(fallback_config)) => {
+                    let fallback_points = points_for_device(&fallback_config, &model);
+                    Ok((model.id, fallback_points.len()))
+                }
+                Ok(None) => Err(modbus_err),
+                Err(bacnet_err) => Err(anyhow!(
+                    "modbus polling failed ({modbus_err}); BACnet fallback failed ({bacnet_err})"
+                )),
+            }
+        }
+        Err(err) => Err(err),
+    }
 }
 
 async fn poll_device(state: &AppState, device: &ExternalDeviceRow) -> Result<()> {
-    let config = parse_external_device_config(&device.config.0).context("invalid device config")?;
+    let original_config =
+        parse_external_device_config(&device.config.0).context("invalid device config")?;
+    let config = normalize_runtime_external_device_config(state, &original_config).await?;
+    if config != original_config {
+        update_device_config(state, device.id, &config).await?;
+    }
     let model = find_model(&config.vendor_id, &config.model_id).context("unknown device model")?;
     poll_device_with_config(state, device, &config, &model).await
 }
@@ -219,6 +240,142 @@ fn parse_external_device_config(config: &JsonValue) -> Option<ExternalDeviceConf
     config
         .get("external_device")
         .and_then(|value| serde_json::from_value(value.clone()).ok())
+}
+
+fn parse_hostname_from_url(value: &str) -> Option<String> {
+    Url::parse(value)
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_string))
+}
+
+fn normalize_http_device_config(config: &mut ExternalDeviceConfig) {
+    if config.protocol != "http_json" {
+        return;
+    }
+    let host = config.host.as_deref().map(str::trim).filter(|value| !value.is_empty());
+    let base_url = config
+        .http_base_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    let normalized_base_url = if let Some(url) = base_url {
+        Some(url.to_string())
+    } else if let Some(host_text) = host {
+        if host_text.starts_with("http://") || host_text.starts_with("https://") {
+            Some(host_text.to_string())
+        } else {
+            Some(format!("http://{host_text}"))
+        }
+    } else {
+        None
+    };
+
+    let normalized_base_url = normalized_base_url.map(|value| {
+        if config.vendor_id == "metasys" && config.model_id == "metasys_server" {
+            if let Ok(mut parsed) = Url::parse(&value) {
+                if parsed.path().is_empty() || parsed.path() == "/" {
+                    parsed.set_path("/metasys");
+                    return parsed.to_string();
+                }
+            }
+        }
+        value
+    });
+
+    if let Some(url) = normalized_base_url.as_deref() {
+        config.host = parse_hostname_from_url(url).or_else(|| config.host.clone());
+    }
+    config.http_base_url = normalized_base_url;
+}
+
+fn gateway_host_from_config(config: &ExternalDeviceConfig) -> Option<String> {
+    config
+        .host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            config
+                .http_base_url
+                .as_deref()
+                .and_then(parse_hostname_from_url)
+        })
+}
+
+async fn infer_bacnet_bbmd_host(state: &AppState) -> Result<Option<String>> {
+    let rows: Vec<(SqlJson<JsonValue>,)> = sqlx::query_as(
+        r#"
+        SELECT config
+        FROM nodes
+        WHERE external_provider = 'metasys'
+        ORDER BY last_seen DESC NULLS LAST, created_at ASC
+        "#,
+    )
+    .fetch_all(&state.db)
+    .await
+    .context("failed to inspect Metasys gateway config")?;
+
+    for (config_json,) in rows {
+        if let Some(config) = parse_external_device_config(&config_json.0) {
+            if let Some(host) = gateway_host_from_config(&config) {
+                return Ok(Some(host));
+            }
+        }
+    }
+    Ok(None)
+}
+
+async fn normalize_runtime_external_device_config(
+    state: &AppState,
+    config: &ExternalDeviceConfig,
+) -> Result<ExternalDeviceConfig> {
+    let mut normalized = config.clone();
+    normalize_http_device_config(&mut normalized);
+    if normalized.protocol == "bacnet_ip"
+        && normalized
+            .bacnet_bbmd_host
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .is_none()
+    {
+        if let Some(host) = infer_bacnet_bbmd_host(state).await? {
+            normalized.bacnet_bbmd_host = Some(host);
+        }
+    }
+    Ok(normalized)
+}
+
+async fn try_bacnet_fallback_sync(
+    state: &AppState,
+    device: &ExternalDeviceRow,
+    config: &ExternalDeviceConfig,
+    model: &DeviceModel,
+) -> Result<Option<ExternalDeviceConfig>> {
+    if config.protocol != "modbus_tcp" || !model.protocols.iter().any(|protocol| protocol == "bacnet_ip")
+    {
+        return Ok(None);
+    }
+
+    let mut fallback = config.clone();
+    fallback.protocol = "bacnet_ip".to_string();
+    fallback.port = Some(if config.port == Some(502) { 47808 } else { config.port.unwrap_or(47808) });
+    let mut fallback = normalize_runtime_external_device_config(state, &fallback).await?;
+    let discovery = discover_device_points(state, device, &fallback, model).await?;
+    if let Some(points) = discovery.points {
+        fallback.discovered_points = Some(points);
+    }
+    if let Some(instance) = discovery.bacnet_device_instance {
+        fallback.bacnet_device_instance = Some(instance);
+    }
+    if let Some(vendor_id) = discovery.bacnet_vendor_id {
+        fallback.bacnet_vendor_id = Some(vendor_id);
+    }
+    update_device_config(state, device.id, &fallback).await?;
+    poll_device_with_config(state, device, &fallback, model).await?;
+    Ok(Some(fallback))
 }
 
 fn points_for_device(config: &ExternalDeviceConfig, model: &DeviceModel) -> Vec<DevicePoint> {
@@ -942,12 +1099,41 @@ async fn create_bacnet_client(
             .await
             .context("failed to start BACnet client")
     };
-    match build_client(47808).await {
-        Ok(client) => Ok(client),
+    let client = match build_client(47808).await {
+        Ok(client) => client,
         Err(primary_err) => build_client(0)
             .await
-            .with_context(|| format!("failed to start BACnet client ({primary_err})")),
+            .with_context(|| format!("failed to start BACnet client ({primary_err})"))?,
+    };
+    if let Some(bbmd_host) = config
+        .bacnet_bbmd_host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let bbmd_ip = parse_ipv4_host(bbmd_host)
+            .with_context(|| format!("invalid BACnet BBMD host {bbmd_host}"))?;
+        let bbmd_port = config.bacnet_bbmd_port.unwrap_or(47808);
+        let result = client
+            .register_foreign_device_bvlc(
+                &bip_mac(bbmd_ip, bbmd_port),
+                config.bacnet_foreign_ttl_seconds.unwrap_or(300),
+            )
+            .await
+            .with_context(|| {
+                format!(
+                    "BACnet BBMD gateway {bbmd_host}:{bbmd_port} did not acknowledge foreign-device registration"
+                )
+            })?;
+        anyhow::ensure!(
+            result == BvlcResultCode::SUCCESSFUL_COMPLETION,
+            "BACnet BBMD gateway {}:{} rejected foreign-device registration with {:?}",
+            bbmd_host,
+            bbmd_port,
+            result
+        );
     }
+    Ok(client)
 }
 
 struct BacnetLocalInterface {
@@ -1535,7 +1721,23 @@ async fn discover_device_points(
         }
         "bacnet_ip" => discover_bacnet_points(config)
             .await
-            .with_context(|| format!("failed to discover BACnet points for device {} ({})", device.name, model.id)),
+            .with_context(|| {
+                let gateway_hint = if config
+                    .bacnet_bbmd_host
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .is_some()
+                {
+                    " The configured BBMD gateway did not return any matching BACnet responses; verify the device instance/network or the routed BACnet path."
+                } else {
+                    " No BBMD gateway is configured; add a Metasys/BBMD host if this device is not on the controller's local BACnet subnet."
+                };
+                format!(
+                    "failed to discover BACnet points for device {} ({}){}. ",
+                    device.name, model.id, gateway_hint
+                )
+            }),
         "lutron_leap" => {
             let points = discover_lutron_leap_points(config).await.with_context(|| {
                 format!(
@@ -2169,6 +2371,41 @@ mod tests {
     }
 
     #[test]
+    fn normalize_http_device_config_accepts_url_in_host_field() {
+        let mut config = ExternalDeviceConfig {
+            vendor_id: "metasys".to_string(),
+            model_id: "metasys_server".to_string(),
+            protocol: "http_json".to_string(),
+            host: Some("https://192.168.75.18".to_string()),
+            port: None,
+            unit_id: None,
+            poll_interval_seconds: None,
+            snmp_community: None,
+            http_base_url: None,
+            http_username: None,
+            http_password: None,
+            lip_username: None,
+            lip_password: None,
+            lip_integration_report: None,
+            leap_client_cert_pem: None,
+            leap_client_key_pem: None,
+            leap_ca_pem: None,
+            leap_verify_ca: None,
+            discovered_points: None,
+            bacnet_device_instance: None,
+            bacnet_vendor_id: None,
+            bacnet_bbmd_host: None,
+            bacnet_bbmd_port: None,
+            bacnet_foreign_ttl_seconds: None,
+        };
+
+        normalize_http_device_config(&mut config);
+
+        assert_eq!(config.host.as_deref(), Some("192.168.75.18"));
+        assert_eq!(config.http_base_url.as_deref(), Some("https://192.168.75.18/metasys"));
+    }
+
+    #[test]
     fn hosts_from_range_limits_and_parses() {
         let (label, hosts) = hosts_from_range("192.168.75.40-192.168.75.42").unwrap();
         assert_eq!(label, "192.168.75.40-192.168.75.42");
@@ -2219,7 +2456,7 @@ mod tests {
             discovered_points: None,
             bacnet_device_instance: None,
             bacnet_vendor_id: None,
-            bacnet_bbmd_host: None,
+            bacnet_bbmd_host: std::env::var("ID_LIVE_BACNET_BBMD_HOST").ok(),
             bacnet_bbmd_port: None,
             bacnet_foreign_ttl_seconds: None,
         };
@@ -2248,5 +2485,187 @@ mod tests {
         assert!(discovery.bacnet_device_instance.is_some());
         assert!(points.len() >= 20, "expected at least 20 BACnet points, got {}", points.len());
         assert!(points.iter().all(|point| point.protocol == "bacnet_ip"));
+    }
+
+    #[tokio::test]
+    #[ignore = "diagnostic: inspects live BBMD/FDT state"]
+    async fn live_bacnet_gateway_diagnostic() {
+        let gateway = std::env::var("ID_LIVE_BACNET_BBMD_HOST")
+            .unwrap_or_else(|_| "192.168.75.18".to_string());
+        let target = std::env::var("ID_LIVE_BACNET_HOST_NEWER")
+            .unwrap_or_else(|_| "192.168.75.101".to_string());
+        let host_ip = parse_ipv4_host(&target).unwrap();
+        let gateway_ip = parse_ipv4_host(&gateway).unwrap();
+        let config = ExternalDeviceConfig {
+            vendor_id: "setra".to_string(),
+            model_id: "setra_power_meter_generic".to_string(),
+            protocol: "bacnet_ip".to_string(),
+            host: Some(target),
+            port: Some(47808),
+            unit_id: None,
+            poll_interval_seconds: Some(30),
+            snmp_community: None,
+            http_base_url: None,
+            http_username: None,
+            http_password: None,
+            lip_username: None,
+            lip_password: None,
+            lip_integration_report: None,
+            leap_client_cert_pem: None,
+            leap_client_key_pem: None,
+            leap_ca_pem: None,
+            leap_verify_ca: None,
+            discovered_points: None,
+            bacnet_device_instance: None,
+            bacnet_vendor_id: None,
+            bacnet_bbmd_host: Some(gateway),
+            bacnet_bbmd_port: Some(47808),
+            bacnet_foreign_ttl_seconds: Some(300),
+        };
+        let mut client = create_bacnet_client(&config, host_ip, 47808).await.unwrap();
+        let gateway_mac = bip_mac(gateway_ip, 47808);
+        let register = client.register_foreign_device_bvlc(&gateway_mac, 60).await;
+        eprintln!("foreign-device registration: {register:?}");
+        let fdt = client.read_fdt(&gateway_mac).await;
+        eprintln!("fdt: {fdt:?}");
+        client.who_is(None, None).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
+        let devices = client.discovered_devices().await;
+        eprintln!("discovered devices: {devices:#?}");
+        client.stop().await.ok();
+    }
+
+    #[tokio::test]
+    #[ignore = "diagnostic: direct BACnet unicast with known instance"]
+    async fn live_bacnet_direct_known_instance_diagnostic() {
+        let host = std::env::var("ID_LIVE_BACNET_HOST")
+            .unwrap_or_else(|_| "192.168.75.103".to_string());
+        let instance = std::env::var("ID_LIVE_BACNET_INSTANCE")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .unwrap_or(394000);
+        let config = ExternalDeviceConfig {
+            vendor_id: "setra".to_string(),
+            model_id: "setra_power_meter_generic".to_string(),
+            protocol: "bacnet_ip".to_string(),
+            host: Some(host.clone()),
+            port: Some(47808),
+            unit_id: None,
+            poll_interval_seconds: Some(30),
+            snmp_community: None,
+            http_base_url: None,
+            http_username: None,
+            http_password: None,
+            lip_username: None,
+            lip_password: None,
+            lip_integration_report: None,
+            leap_client_cert_pem: None,
+            leap_client_key_pem: None,
+            leap_ca_pem: None,
+            leap_verify_ca: None,
+            discovered_points: None,
+            bacnet_device_instance: Some(instance),
+            bacnet_vendor_id: None,
+            bacnet_bbmd_host: None,
+            bacnet_bbmd_port: None,
+            bacnet_foreign_ttl_seconds: None,
+        };
+        let host_ip = parse_ipv4_host(&host).unwrap();
+        let mut client = create_bacnet_client(&config, host_ip, 47808).await.unwrap();
+        let object = bacnet_read_property_value(
+            &client,
+            instance,
+            Some(&bip_mac(host_ip, 47808)),
+            ObjectIdentifier::new(ObjectType::DEVICE, instance).unwrap(),
+            PropertyIdentifier::OBJECT_NAME,
+            None,
+        )
+        .await;
+        eprintln!("direct read result: {object:?}");
+        client.stop().await.ok();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a reachable live BACnet device with known instance"]
+    async fn live_setra_direct_instance_discovers_points() {
+        let config = ExternalDeviceConfig {
+            vendor_id: "setra".to_string(),
+            model_id: "setra_power_meter_generic".to_string(),
+            protocol: "bacnet_ip".to_string(),
+            host: Some(
+                std::env::var("ID_LIVE_BACNET_HOST")
+                    .unwrap_or_else(|_| "192.168.75.103".to_string()),
+            ),
+            port: Some(47808),
+            unit_id: None,
+            poll_interval_seconds: Some(30),
+            snmp_community: None,
+            http_base_url: None,
+            http_username: None,
+            http_password: None,
+            lip_username: None,
+            lip_password: None,
+            lip_integration_report: None,
+            leap_client_cert_pem: None,
+            leap_client_key_pem: None,
+            leap_ca_pem: None,
+            leap_verify_ca: None,
+            discovered_points: None,
+            bacnet_device_instance: Some(
+                std::env::var("ID_LIVE_BACNET_INSTANCE")
+                    .ok()
+                    .and_then(|value| value.parse::<u32>().ok())
+                    .unwrap_or(394000),
+            ),
+            bacnet_vendor_id: None,
+            bacnet_bbmd_host: None,
+            bacnet_bbmd_port: None,
+            bacnet_foreign_ttl_seconds: None,
+        };
+        let discovery = discover_bacnet_points(&config).await.unwrap();
+        let points = discovery.points.unwrap_or_default();
+        assert!(points.len() >= 10, "expected at least 10 points, got {}", points.len());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a reachable live BACnet device with known instance"]
+    async fn live_megatron_direct_instance_discovers_points() {
+        let config = ExternalDeviceConfig {
+            vendor_id: "megatron".to_string(),
+            model_id: "megatron_controller".to_string(),
+            protocol: "bacnet_ip".to_string(),
+            host: Some(
+                std::env::var("ID_LIVE_BACNET_HOST")
+                    .unwrap_or_else(|_| "192.168.75.80".to_string()),
+            ),
+            port: Some(47808),
+            unit_id: None,
+            poll_interval_seconds: Some(30),
+            snmp_community: None,
+            http_base_url: None,
+            http_username: None,
+            http_password: None,
+            lip_username: None,
+            lip_password: None,
+            lip_integration_report: None,
+            leap_client_cert_pem: None,
+            leap_client_key_pem: None,
+            leap_ca_pem: None,
+            leap_verify_ca: None,
+            discovered_points: None,
+            bacnet_device_instance: Some(
+                std::env::var("ID_LIVE_BACNET_INSTANCE")
+                    .ok()
+                    .and_then(|value| value.parse::<u32>().ok())
+                    .unwrap_or(40),
+            ),
+            bacnet_vendor_id: None,
+            bacnet_bbmd_host: None,
+            bacnet_bbmd_port: None,
+            bacnet_foreign_ttl_seconds: None,
+        };
+        let discovery = discover_bacnet_points(&config).await.unwrap();
+        let points = discovery.points.unwrap_or_default();
+        assert!(!points.is_empty(), "expected at least 1 point");
     }
 }

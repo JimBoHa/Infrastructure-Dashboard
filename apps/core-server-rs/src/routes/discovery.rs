@@ -93,7 +93,7 @@ pub(crate) async fn scan_nodes(
     AuthUser(user): AuthUser,
     Query(query): Query<ScanQuery>,
 ) -> Result<Json<Vec<AdoptionCandidate>>, (StatusCode, String)> {
-    crate::auth::require_capabilities(&user, &["config.write"])
+    crate::auth::require_any_capabilities(&user, &["config.view", "config.write"])
         .map_err(|err| (err.status, err.message))?;
 
     let timeout_seconds = query.timeout.unwrap_or(3.0).clamp(0.5, 10.0);
@@ -450,8 +450,8 @@ pub(crate) async fn adopt_node(
     }
 
     let _ = payload.restore_from_node_id;
-	    let node: Option<NodeRow> = sqlx::query_as(
-	        r#"
+    let node: Option<NodeRow> = sqlx::query_as(
+        r#"
 	        SELECT
 	            id,
 	            name,

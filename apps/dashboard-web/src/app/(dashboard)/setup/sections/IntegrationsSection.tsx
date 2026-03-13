@@ -47,6 +47,44 @@ type CredentialDefinition = {
   hint: string;
 };
 
+function hostnameFromUrl(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    return parsed.hostname || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHttpDraft(host: string, baseUrl: string) {
+  const trimmedHost = host.trim();
+  const trimmedBaseUrl = baseUrl.trim();
+  const normalizedBaseUrl = trimmedBaseUrl
+    ? trimmedBaseUrl
+    : trimmedHost
+      ? trimmedHost.startsWith("http://") || trimmedHost.startsWith("https://")
+        ? trimmedHost
+        : `http://${trimmedHost}`
+      : "";
+  return {
+    host: hostnameFromUrl(normalizedBaseUrl) ?? trimmedHost,
+    baseUrl: normalizedBaseUrl,
+  };
+}
+
+function metasysGatewayHostFromConfig(config: Record<string, unknown> | undefined): string | null {
+  const externalDevice =
+    config && typeof config.external_device === "object" && config.external_device
+      ? (config.external_device as Record<string, unknown>)
+      : null;
+  if (!externalDevice) return null;
+  const host = typeof externalDevice.host === "string" ? externalDevice.host.trim() : "";
+  if (host) return host;
+  const baseUrl =
+    typeof externalDevice.http_base_url === "string" ? externalDevice.http_base_url.trim() : "";
+  return baseUrl ? hostnameFromUrl(baseUrl) : null;
+}
+
 const SUPPORTED_EXTERNAL_PROTOCOLS = new Set([
   "modbus_tcp",
   "bacnet_ip",
@@ -125,6 +163,8 @@ export default function IntegrationsSection({
     unitId: "",
     snmpCommunity: "public",
     httpBaseUrl: "",
+    httpUsername: "",
+    httpPassword: "",
     lipUsername: "",
     lipPassword: "",
     lipIntegrationReport: "",
@@ -179,6 +219,15 @@ export default function IntegrationsSection({
     [externalVendors],
   );
 
+  const metasysGatewayHost = useMemo(() => {
+    for (const device of externalDevicesQuery.data ?? []) {
+      if (device.external_provider !== "metasys") continue;
+      const host = metasysGatewayHostFromConfig(device.config);
+      if (host) return host;
+    }
+    return "";
+  }, [externalDevicesQuery.data]);
+
   useEffect(() => {
     if (!externalCatalogQuery.data) return;
     if (!externalDraft.vendorId && externalVendors.length) {
@@ -192,6 +241,24 @@ export default function IntegrationsSection({
       }));
     }
   }, [externalCatalogQuery.data, externalDraft.vendorId, externalVendors]);
+
+  useEffect(() => {
+    if (
+      externalDraft.protocol === "bacnet_ip" &&
+      !externalDraft.bacnetBbmdHost.trim() &&
+      metasysGatewayHost
+    ) {
+      setExternalDraft((prev) => {
+        if (prev.protocol !== "bacnet_ip" || prev.bacnetBbmdHost.trim()) {
+          return prev;
+        }
+        return {
+          ...prev,
+          bacnetBbmdHost: metasysGatewayHost,
+        };
+      });
+    }
+  }, [externalDraft.protocol, externalDraft.bacnetBbmdHost, metasysGatewayHost]);
 
   const requireCanEdit = () => {
     if (canEdit) return true;
@@ -341,6 +408,8 @@ export default function IntegrationsSection({
           : protocol === "modbus_tcp"
             ? "502"
             : prev.port,
+      bacnetBbmdHost:
+        protocol === "bacnet_ip" ? prev.bacnetBbmdHost || metasysGatewayHost : prev.bacnetBbmdHost,
     }));
     onMessage({
       type: "success",
@@ -379,12 +448,14 @@ export default function IntegrationsSection({
       onMessage({ type: "error", text: "Select a vendor, model, and protocol." });
       return;
     }
-    const host = externalDraft.host.trim();
+    const normalizedHttp = normalizeHttpDraft(externalDraft.host, externalDraft.httpBaseUrl);
+    const host =
+      externalDraft.protocol === "http_json" ? normalizedHttp.host : externalDraft.host.trim();
     if (!host && externalDraft.protocol !== "http_json") {
       onMessage({ type: "error", text: "Enter a host/IP for this device." });
       return;
     }
-    if (externalDraft.protocol === "http_json" && !externalDraft.httpBaseUrl.trim()) {
+    if (externalDraft.protocol === "http_json" && !normalizedHttp.baseUrl) {
       onMessage({ type: "error", text: "Enter an HTTP base URL for this device." });
       return;
     }
@@ -419,6 +490,10 @@ export default function IntegrationsSection({
       externalDraft.vendorId === "setra" && externalDraft.protocol === "bacnet_ip";
     const usingSetraModbus =
       externalDraft.vendorId === "setra" && externalDraft.protocol === "modbus_tcp";
+    const bacnetBbmdHost =
+      externalDraft.protocol === "bacnet_ip"
+        ? externalDraft.bacnetBbmdHost.trim() || metasysGatewayHost
+        : "";
     try {
       const created = await createExternalDevice({
         name: externalDraft.name.trim(),
@@ -429,7 +504,9 @@ export default function IntegrationsSection({
         port: externalDraft.port ? Number(externalDraft.port) : null,
         unit_id: externalDraft.unitId ? Number(externalDraft.unitId) : null,
         snmp_community: externalDraft.snmpCommunity?.trim() || null,
-        http_base_url: externalDraft.httpBaseUrl?.trim() || null,
+        http_base_url: normalizedHttp.baseUrl || null,
+        http_username: externalDraft.httpUsername?.trim() || null,
+        http_password: externalDraft.httpPassword || null,
         lip_username: externalDraft.lipUsername?.trim() || null,
         lip_password: externalDraft.lipPassword?.trim() || null,
         lip_integration_report: externalDraft.lipIntegrationReport?.trim() || null,
@@ -440,7 +517,7 @@ export default function IntegrationsSection({
         bacnet_device_instance: externalDraft.bacnetDeviceInstance
           ? Number(externalDraft.bacnetDeviceInstance)
           : null,
-        bacnet_bbmd_host: externalDraft.bacnetBbmdHost?.trim() || null,
+        bacnet_bbmd_host: bacnetBbmdHost || null,
         bacnet_bbmd_port: externalDraft.bacnetBbmdPort ? Number(externalDraft.bacnetBbmdPort) : null,
         bacnet_foreign_ttl_seconds: externalDraft.bacnetForeignTtlSeconds
           ? Number(externalDraft.bacnetForeignTtlSeconds)
@@ -453,6 +530,9 @@ export default function IntegrationsSection({
         host: "",
         port: "",
         unitId: "",
+        httpBaseUrl: "",
+        httpUsername: "",
+        httpPassword: "",
         lipUsername: "",
         lipPassword: "",
         lipIntegrationReport: "",
@@ -476,6 +556,8 @@ export default function IntegrationsSection({
         ? ` BACnet discovery completed and exposed ${pointText}.`
         : usingSetraModbus
           ? ` Initial sync completed with ${pointText}. For fuller Setra coverage, switch this model to BACnet/IP.`
+          : externalDraft.vendorId === "metasys"
+            ? " Metasys gateway saved. BACnet devices can now reuse it automatically as a BBMD gateway."
           : ` Initial sync completed with ${pointText}.`;
       onMessage({ type: "success", text: `External device added.${suffix}` });
     } catch (err) {
@@ -1375,6 +1457,11 @@ export default function IntegrationsSection({
                       }))
                     }
                   />
+                  <p className="text-xs text-muted-foreground md:col-span-2">
+                    If the device does not answer Who-Is discovery, enter its BACnet device
+                    instance here. Setra and Megatron controllers on the local VLAN often work
+                    best with a known instance ID.
+                  </p>
                   <Input
                     placeholder="BBMD host/IP (optional for routed BACnet)"
                     value={externalDraft.bacnetBbmdHost}
@@ -1410,17 +1497,43 @@ export default function IntegrationsSection({
                       }))
                     }
                   />
+                  {metasysGatewayHost ? (
+                    <p className="text-xs text-muted-foreground md:col-span-2">
+                      Using Metasys gateway{" "}
+                      <span className="font-medium text-card-foreground">{metasysGatewayHost}</span>{" "}
+                      as the default BBMD host unless you override it here.
+                    </p>
+                  ) : null}
                 </Fragment>
               ) : null}
               {externalDraft.protocol === "http_json" ? (
-                <Input
-                  placeholder="HTTP base URL"
-                  value={externalDraft.httpBaseUrl}
-                  disabled={!canEdit}
-                  onChange={(event) =>
-                    setExternalDraft((prev) => ({ ...prev, httpBaseUrl: event.target.value }))
-                  }
-                />
+                <Fragment>
+                  <Input
+                    placeholder="HTTP base URL"
+                    value={externalDraft.httpBaseUrl}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({ ...prev, httpBaseUrl: event.target.value }))
+                    }
+                  />
+                  <Input
+                    placeholder="HTTP username (optional)"
+                    value={externalDraft.httpUsername}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({ ...prev, httpUsername: event.target.value }))
+                    }
+                  />
+                  <Input
+                    type="password"
+                    placeholder="HTTP password (optional)"
+                    value={externalDraft.httpPassword}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setExternalDraft((prev) => ({ ...prev, httpPassword: event.target.value }))
+                    }
+                  />
+                </Fragment>
               ) : null}
               {externalDraft.protocol === "lutron_lip" ? (
                 <Fragment>
@@ -1507,7 +1620,8 @@ export default function IntegrationsSection({
               is recommended for Setra Power Squad meters. Modbus TCP relies on the catalog
               profile for the selected model. For routed BACnet networks, provide the device
               instance or BBMD details so the controller does not depend on local-subnet broadcast
-              discovery.
+              discovery. If you already added a Metasys server, Setup Center will reuse it as the
+              default BACnet gateway automatically.
             </p>
           </Card>
           <div className="mt-4 grid gap-3">

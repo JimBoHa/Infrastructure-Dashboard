@@ -59,7 +59,7 @@ export const fallbackExternalDeviceCatalog: ExternalDeviceCatalog = {
           id: "megatron_controller",
           name: "Megatron Water Treatment Controller",
           since_year: null,
-          protocols: ["modbus_tcp"],
+          protocols: ["bacnet_ip", "modbus_tcp"],
           points: [],
         },
       ],

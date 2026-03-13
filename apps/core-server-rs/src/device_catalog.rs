@@ -25,7 +25,7 @@ pub struct DeviceModel {
     pub points: Vec<DevicePoint>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema, PartialEq)]
 pub struct DevicePoint {
     pub name: String,
     pub metric: String,

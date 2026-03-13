@@ -569,17 +569,7 @@
           "protocols": [
             "http_json"
           ],
-          "points": [
-            {
-              "name": "Metasys Point (value)",
-              "metric": "metasys_point_value",
-              "sensor_type": "generic",
-              "unit": "",
-              "protocol": "http_json",
-              "path": "/api/v2/points/{point_id}",
-              "json_pointer": "/value"
-            }
-          ]
+          "points": []
         }
       ]
     },
@@ -616,6 +606,7 @@
           "name": "Megatron Water Treatment Controller",
           "since_year": 2015,
           "protocols": [
+            "bacnet_ip",
             "modbus_tcp"
           ],
           "points": [
