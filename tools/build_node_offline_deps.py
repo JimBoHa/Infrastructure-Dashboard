@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 import zipfile
 from dataclasses import dataclass
@@ -30,6 +31,8 @@ LOCK_PATH = NODE_AGENT_ROOT / "poetry.lock"
 NODE_PLATFORMS = ["manylinux2014_aarch64", "manylinux_2_34_aarch64", "linux_aarch64"]
 TARGET_IMPLEMENTATION = "cp"
 PIWHEELS_SIMPLE = "https://www.piwheels.org/simple"
+PIP_DOWNLOAD_ATTEMPTS = 3
+PIP_DEFAULT_TIMEOUT_SECONDS = 120
 
 @dataclass(frozen=True)
 class PythonTarget:
@@ -235,15 +238,25 @@ def download_wheels(
         {
             "PIP_DISABLE_PIP_VERSION_CHECK": "1",
             "PIP_CACHE_DIR": str(pip_cache),
+            "PIP_DEFAULT_TIMEOUT": str(PIP_DEFAULT_TIMEOUT_SECONDS),
         }
     )
     if not env.get("PIP_EXTRA_INDEX_URL"):
         env["PIP_EXTRA_INDEX_URL"] = PIWHEELS_SIMPLE
-    proc = subprocess.run(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    if proc.returncode != 0:
+    failure_tail = ""
+    failure_code = 1
+    for attempt in range(1, PIP_DOWNLOAD_ATTEMPTS + 1):
+        proc = subprocess.run(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        if proc.returncode == 0:
+            return
+        failure_code = proc.returncode
         output = (proc.stdout or "").strip().splitlines()
-        tail = "\n".join(output[-40:])
-        raise RuntimeError(f"pip download failed (exit={proc.returncode}). Tail:\n{tail}")
+        failure_tail = "\n".join(output[-40:])
+        if attempt < PIP_DOWNLOAD_ATTEMPTS:
+            time.sleep(attempt * 2)
+    raise RuntimeError(
+        f"pip download failed after {PIP_DOWNLOAD_ATTEMPTS} attempts (exit={failure_code}). Tail:\n{failure_tail}"
+    )
 
 
 def install_wheelhouse(*, wheelhouse: Path, vendor_dir: Path) -> None:
